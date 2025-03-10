@@ -5,7 +5,7 @@ FROM python:3.12
 ENV PYTHONUNBUFFERED=1
 
 # Definir el directorio de trabajo
-WORKDIR ./code
+WORKDIR /code
 
 # Copiar solo el archivo de dependencias primero
 COPY requirements.txt /code/
@@ -13,8 +13,9 @@ COPY requirements.txt /code/
 # Actualizar pip e instalar dependencias en una sola capa
 RUN python -m pip install --upgrade pip 
 RUN python -m pip install --no-cache-dir -r requirements.txt
+
 # Copiar el resto del código fuente
-COPY . ./code/
+COPY . /code/
 
 # Exponer el puerto 8000
 EXPOSE 8000
