@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>📜 Histórico de Tareas</h2>
+
+    <!-- 🔹 Filtro de fechas -->
+    <form method="GET" class="mb-3">
+        <label for="filtro">Mostrar tareas completadas en:</label>
+        <select name="filtro" id="filtro" class="form-select d-inline w-auto">
+            <option value="8" {% if filtro_seleccionado == "8" %}selected{% endif %}>Últimos 8 días</option>
+            <option value="15" {% if filtro_seleccionado == "15" %}selected{% endif %}>Últimos 15 días</option>
+            <option value="30" {% if filtro_seleccionado == "30" %}selected{% endif %}>Últimos 30 días</option>
+            <option value="todas" {% if filtro_seleccionado == "todas" %}selected{% endif %}>Todas</option>
+            <option value="rango" {% if filtro_seleccionado == "rango" %}selected{% endif %}>Rango Personalizado</option>
+        </select>
+
+        <input type="date" name="fecha_inicio" id="fecha_inicio" class="form-control d-inline w-auto"
+               value="{{ fecha_inicio }}" {% if filtro_seleccionado != "rango" %}style="display: none;"{% endif %}>
+        <input type="date" name="fecha_fin" id="fecha_fin" class="form-control d-inline w-auto"
+               value="{{ fecha_fin }}" {% if filtro_seleccionado != "rango" %}style="display: none;"{% endif %}>
+
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+    </form>
+
+    <!-- 🔹 Lista de tareas completadas -->
+    {% if tareas %}
+        <ul class="list-group">
+            {% for tarea in tareas %}
+            <li class="list-group-item">
+                <div>
+                    <strong>{{ tarea.titulo }}</strong> - {{ tarea.descripcion }} <br>
+                    <small>📅 Completada el {{ tarea.fecha_completada|date:"d M Y" }} | Creada por: {{ tarea.creador.username }}</small>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No hay tareas completadas en este período.</p>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const filtro = document.getElementById("filtro");
+    const fechaInicio = document.getElementById("fecha_inicio");
+    const fechaFin = document.getElementById("fecha_fin");
+
+    filtro.addEventListener("change", function() {
+        if (filtro.value === "rango") {
+            fechaInicio.style.display = "inline";
+            fechaFin.style.display = "inline";
+        } else {
+            fechaInicio.style.display = "none";
+            fechaFin.style.display = "none";
+        }
+    });
+});
+</script>
+{% endblock %}

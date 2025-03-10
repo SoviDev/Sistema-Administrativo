@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Configuración de la Cuenta</h2>
+
+    <h4>Opciones del Usuario</h4>
+    <ul>
+        <li><a href="{% url 'cambiar_contrasena' %}">Cambiar Contraseña</a></li>
+    </ul>
+
+    {% if user.is_superuser %}
+        <h4>Opciones Administrativas</h4>
+        <ul>
+            <li><a href="/admin/tareas/departamento/">Administrar Departamentos</a></li>
+            <li><a href="{% url 'registro_admin' %}">Registrar Nuevo Usuario</a></li> <!-- 🔹 Solo visible para superusuarios -->
+        </ul>
+    {% endif %}
+</div>
+{% endblock %}
+

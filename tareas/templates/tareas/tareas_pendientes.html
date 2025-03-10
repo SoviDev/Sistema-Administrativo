@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0"><i class="fas fa-tasks"></i> Tareas Pendientes</h2>
+        </div>
+        <div class="card-body">
+
+            {% if es_admin %}
+                <h4 class="text-secondary"><i class="fas fa-users-cog"></i> Vista de Administrador</h4>
+                {% for departamento, tareas in tareas_por_departamento.items %}
+                    <div class="mt-4">
+                        <h5 class="bg-info text-white p-2 rounded">{{ departamento }}</h5>
+                        {% if tareas %}
+                            <ul class="list-group">
+                                {% for item in tareas %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center tarea-item" data-tarea-id="{{ item.tarea.id }}">
+                                    <div>
+                                        <strong>{{ item.tarea.titulo }}</strong> - {{ item.tarea.descripcion }} <br>
+                                        <small>
+                                            📅 {{ item.tarea.fecha_creacion|date:"d M Y" }} | 
+                                            Estado: <span class="estado badge bg-warning text-dark">{{ item.tarea.estado }}</span> |
+                                            👤 Asignado a: <strong>{{ item.tarea.asignado_a.username|default:"No asignado" }}</strong>
+                                        </small>
+                                    </div>
+                                    <div>
+                                        {% if item.puede_editar %}
+                                            <a href="{% url 'tarea_editar' item.tarea.id %}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                            {% if item.tarea.estado != 'completada' %}
+                                                <button class="btn btn-sm btn-success completar-btn" data-tarea-id="{{ item.tarea.id }}">
+                                                    <i class="fas fa-check-circle"></i> Completar
+                                                </button>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">No hay tareas pendientes en este departamento.</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+            {% else %}
+                <h4 class="text-secondary"><i class="fas fa-user"></i> Tus Tareas</h4>
+
+                {% for titulo, tareas, color in zip_tareas %}
+                    <div class="mt-4">
+                        <h5 class="bg-{{ color }} text-white p-2 rounded">{{ titulo }}</h5>
+                        {% if tareas %}
+                            <ul class="list-group">
+                                {% for item in tareas %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center tarea-item" data-tarea-id="{{ item.tarea.id }}">
+                                    <div>
+                                        <strong>{{ item.tarea.titulo }}</strong> - {{ item.tarea.descripcion }} <br>
+                                        <small>
+                                            📅 {{ item.tarea.fecha_creacion|date:"d M Y" }} | 
+                                            Estado: <span class="estado badge bg-warning text-dark">{{ item.tarea.estado }}</span> |
+                                            👤 Asignado a: <strong>{{ item.tarea.asignado_a.username|default:"No asignado" }}</strong>
+                                        </small>
+                                    </div>
+                                    <div>
+                                        {% if item.puede_editar %}
+                                            <a href="{% url 'tarea_editar' item.tarea.id %}" class="btn btn-sm btn-warning">
+                                                <i class="fas fa-edit"></i> Editar
+                                            </a>
+                                            {% if item.tarea.estado != 'completada' %}
+                                                <button class="btn btn-sm btn-success completar-btn" data-tarea-id="{{ item.tarea.id }}">
+                                                    <i class="fas fa-check-circle"></i> Completar
+                                                </button>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">No hay tareas en esta categoría.</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 🔹 JavaScript para manejar la acción de completar tareas -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".completar-btn").forEach(button => {
+        button.addEventListener("click", function() {
+            let tareaId = this.getAttribute("data-tarea-id");
+
+            fetch(`/tareas/completar/${tareaId}/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let tareaItem = document.querySelector(`.tarea-item[data-tarea-id='${tareaId}']`);
+                    if (tareaItem) {
+                        tareaItem.querySelector(".estado").textContent = "Completada";
+                        tareaItem.querySelector(".estado").classList.remove("bg-warning", "text-dark");
+                        tareaItem.querySelector(".estado").classList.add("bg-success", "text-white");
+                        tareaItem.querySelector(".completar-btn").remove();
+                    }
+                } else {
+                    alert("⚠️ Error: " + data.error);
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("⚠️ Hubo un problema al completar la tarea.");
+            });
+        });
+    });
+});
+</script>
+
+{% endblock %}

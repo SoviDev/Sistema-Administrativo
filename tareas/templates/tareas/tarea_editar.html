@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>✏️ Editar Tarea</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="id_titulo" class="form-label">Título</label>
+            {{ form.titulo }}
+        </div>
+        <div class="mb-3">
+            <label for="id_descripcion" class="form-label">Descripción</label>
+            {{ form.descripcion }}
+        </div>
+        <div class="mb-3">
+            <label for="id_departamento" class="form-label">Departamento</label>
+            {{ form.departamento }}
+        </div>
+        <div class="mb-3">
+            <label for="id_asignado_a" class="form-label">Asignado a</label>
+            {{ form.asignado_a }}
+        </div>
+        <div class="mb-3">
+            <label for="id_estado" class="form-label">Estado</label>
+            {{ form.estado }}
+        </div>
+        <div class="mb-3">
+            <label for="id_progreso" class="form-label">Progreso (%)</label>
+            {{ form.progreso }}
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        <a href="{% url 'tareas_pendientes' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
