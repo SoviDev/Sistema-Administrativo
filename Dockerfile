@@ -1,5 +1,5 @@
 # Usar la versión estable de Python
-FROM --platform=linux/amd64 python:3.12
+FROM python:3.12
 
 # Evitar almacenamiento en búfer en la salida de Python
 ENV PYTHONUNBUFFERED=1
