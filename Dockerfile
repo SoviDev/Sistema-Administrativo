@@ -5,7 +5,7 @@ FROM python:3.12
 ENV PYTHONUNBUFFERED=1
 
 # Definir el directorio de trabajo
-WORKDIR /code
+WORKDIR ./code
 
 # Copiar solo el archivo de dependencias primero
 COPY requirements.txt /code/
