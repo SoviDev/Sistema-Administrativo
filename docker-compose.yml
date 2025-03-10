@@ -4,10 +4,8 @@ services:
     image: postgres:15
     container_name: postgres_db
     restart: always
-    environment:
-      POSTGRES_DB: sistema_administrativo
-      POSTGRES_USER: "POSTGRES_USER"
-      POSTGRES_PASSWORD: "POSTGRES_PASSWORD"
+    env_file:
+      - .env  # 🔹 Cargar variables desde .env
     ports:
       - "5432:5432"
     volumes:
@@ -16,7 +14,7 @@ services:
   web:
     build: .
     container_name: django_app
-    restart: always  # Asegura que se autoarranque
+    restart: always
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
@@ -24,8 +22,8 @@ services:
       - "8000:8000"
     depends_on:
       - db
-    environment:
-      DATABASE_URL: "DATABASE_URL"
+    env_file:
+      - .env  # 🔹 Cargar variables desde .env
 
 volumes:
   postgres_data:
