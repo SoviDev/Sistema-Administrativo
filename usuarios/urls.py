@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import lista_usuarios, lista_departamentos, registro_admin, editar_usuario, editar_departamento
+from .views import lista_usuarios, lista_departamentos, registro_admin, editar_usuario, editar_departamento, crear_departamento
 from django.contrib.auth import views as auth_views
 
 app_name = "usuarios"
@@ -7,6 +7,7 @@ app_name = "usuarios"
 urlpatterns = [
     path('usuarios/', lista_usuarios, name='lista_usuarios'),
     path('departamentos/', lista_departamentos, name='lista_departamentos'),
+    path('departamentos/crear/', crear_departamento, name='crear_departamento'),
     path('registro/', registro_admin, name='registro_admin'),
     path('editar/<int:usuario_id>/', editar_usuario, name='editar_usuario'),
     path('departamentos/editar/<int:departamento_id>/', editar_departamento, name='editar_departamento'),

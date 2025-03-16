@@ -2,6 +2,12 @@
 {% block content %}
 <div class="container mt-4">
     <h2><i class="bi bi-building"></i> Departamentos</h2>
+
+    <!-- Botón para agregar un nuevo departamento -->
+    <a href="{% url 'usuarios:crear_departamento' %}" class="btn btn-sm btn-success mb-3">
+        <i class="bi bi-plus-circle"></i> Agregar Departamento
+    </a>
+
     <table class="table mt-3">
         <thead>
             <tr>
@@ -14,7 +20,9 @@
             <tr>
                 <td>{{ departamento.nombre }}</td>
                 <td>
-                    <a href="{% url 'usuarios:editar_departamento' departamento.id %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Editar</a>
+                    <a href="{% url 'usuarios:editar_departamento' departamento.id %}" class="btn btn-sm btn-warning">
+                        <i class="bi bi-pencil"></i> Editar
+                    </a>
                 </td>
             </tr>
             {% endfor %}

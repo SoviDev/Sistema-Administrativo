@@ -25,7 +25,7 @@ def registro_admin(request):
             return redirect('usuarios:lista_usuarios')  # Redirige a la lista de usuarios
     else:
         form = CustomUserCreationForm()
-    return render(request, 'usuarios/registro_admin.html', {'form': form})
+    return render(request, 'registro_admin.html', {'form': form})
 
 
 @login_required
@@ -43,6 +43,27 @@ def editar_usuario(request, usuario_id):
 
 @login_required
 def editar_departamento(request, departamento_id):
+    departamento = get_object_or_404(Departamento, id=departamento_id)
+    if request.method == "POST":
+        form = DepartamentoForm(request.POST, instance=departamento)
+        if form.is_valid():
+            form.save()
+            return redirect('usuarios:lista_departamentos')
+    else:
+        form = DepartamentoForm(instance=departamento)
+    return render(request, 'editar_departamento.html', {'form': form, 'departamento': departamento})
+
+@login_required    
+def crear_departamento(request):
+    if request.method == 'POST':
+        form = DepartamentoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('usuarios:lista_departamentos')
+    else:
+        form = DepartamentoForm()
+
+    return render(request, 'crear_departamento.html', {'form': form})
     departamento = get_object_or_404(Departamento, id=departamento_id)
     if request.method == "POST":
         form = DepartamentoForm(request.POST, instance=departamento)
