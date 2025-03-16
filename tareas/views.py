@@ -215,7 +215,6 @@ def tarea_editar(request, tarea_id):
         'tarea': tarea
     })
 
-from django.urls import reverse
 
 @login_required
 def tareas_historial(request, tarea_id):
