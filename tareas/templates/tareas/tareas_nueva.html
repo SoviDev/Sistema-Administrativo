@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0"><i class="bi bi-plus-circle"></i> Crear Nueva Tarea</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+
+                <!-- 🔹 Título -->
+                <div class="mb-3">
+                    <label for="id_titulo" class="form-label"><i class="bi bi-card-text"></i> Título</label>
+                    {{ form.titulo }}
+                </div>
+
+                <!-- 🔹 Descripción -->
+                <div class="mb-3">
+                    <label for="id_descripcion" class="form-label"><i class="bi bi-file-text"></i> Descripción</label>
+                    {{ form.descripcion }}
+                </div>
+
+                <!-- 🔹 Estado -->
+                <div class="mb-3">
+                    <label for="id_estado" class="form-label"><i class="bi bi-list-check"></i> Estado</label>
+                    {{ form.estado }}
+                </div>
+
+                <!-- 🔹 Departamento -->
+                <select id="id_departamento" name="departamento" class="form-select" style="max-width: 100%; width: auto;">
+                    <option value="" selected>-- Seleccionar Departamento --</option>
+                    {% for depto in form.departamento.field.queryset %}
+                        <option value="{{ depto.id }}" style="white-space: nowrap;">{{ depto.nombre }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- 🔹 Usuario Asignado -->
+                <div class="mb-3">
+                    <label for="id_asignado_a" class="form-label"><i class="bi bi-person-fill"></i> Asignar a</label>
+                    <select id="id_asignado_a" name="asignado_a" class="form-select" disabled>
+                        <option value="" selected>-- Primero selecciona un Departamento --</option>
+                    </select>
+                </div>
+
+                <!-- 🔹 Botones -->
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Guardar</button>
+                <a href="{% url 'tareas:tareas_pendientes' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 🔹 JavaScript para manejar la lógica del formulario -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const departamentoSelect = document.getElementById("id_departamento");
+    const usuarioSelect = document.getElementById("id_asignado_a");
+
+    function actualizarUsuarios(deptoId) {
+        fetch(`/api/usuarios_por_departamento/${deptoId}/`)
+            .then(response => response.json())
+            .then(data => {
+                usuarioSelect.innerHTML = '<option value="">-- Seleccionar Usuario --</option>';
+                data.usuarios.forEach(user => {
+                    let option = document.createElement("option");
+                    option.value = user.id;
+                    option.textContent = user.username;
+                    usuarioSelect.appendChild(option);
+                });
+                usuarioSelect.disabled = false;
+            })
+            .catch(error => {
+                console.error("Error al obtener usuarios:", error);
+                usuarioSelect.innerHTML = '<option value="">-- No disponible --</option>';
+                usuarioSelect.disabled = true;
+            });
+    }
+
+    departamentoSelect.addEventListener("change", function () {
+        let deptoId = this.value;
+        if (deptoId) {
+            actualizarUsuarios(deptoId);
+        } else {
+            usuarioSelect.innerHTML = '<option value="">-- Primero selecciona un Departamento --</option>';
+            usuarioSelect.disabled = true;
+        }
+    });
+});
+</script>
+{% endblock %}
+
+

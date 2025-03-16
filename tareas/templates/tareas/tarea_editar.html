@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0"><i class="bi bi-pencil"></i> Editar Tarea</h2>
+        </div>
+        <div class="card-body">
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    <strong>⚠️ Atención:</strong> {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="id_titulo" class="form-label">Título</label>
+                    {{ form.titulo }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_descripcion" class="form-label">Descripción</label>
+                    {{ form.descripcion }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_estado" class="form-label">Estado</label>
+                    {{ form.estado }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_departamento" class="form-label">Departamento</label>
+                    {{ form.departamento }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_asignado_a" class="form-label">Asignado a</label>
+                    {{ form.asignado_a }}
+                </div>
+
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
+                <a href="{% url 'tareas_pendientes' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

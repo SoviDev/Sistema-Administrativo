@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-3 px-3">  
+    <!-- 🔍 Formulario de Búsqueda -->
+    <form method="GET" action="{% url 'tareas:tareas_pendientes' %}" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Buscar tareas..." value="{{ query }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+        </div>
+    </form>
+
+    <div class="row">
+        {% if es_admin %}
+            <!-- ✅ Vista para Administradores -->
+            <div class="col-12">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="mb-0"><i class="fas fa-users-cog"></i> Tareas Pendientes (Administrador)</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- 🔹 Tareas Propias -->
+                            <div class="col-md-4">
+                                <h5 class="bg-secondary text-white p-2 rounded text-center">Tus Tareas Propias</h5>
+                                {% include 'tareas/lista_tareas.html' with tareas=tareas_propias_admin %}
+                            </div>
+
+                            <!-- 🔹 Tareas Sin Asignar -->
+                            <div class="col-md-4">
+                                <h5 class="bg-warning text-dark p-2 rounded text-center">Tareas Sin Asignar</h5>
+                                {% include 'tareas/lista_tareas.html' with tareas=tareas_sin_asignar %}
+                            </div>
+
+                            <!-- 🔹 Tareas por Departamento -->
+                            <div class="col-md-4">
+                                <h5 class="bg-info text-white p-2 rounded text-center">Tareas por Departamento</h5>
+                                {% for departamento, tareas in tareas_por_departamento.items %}
+                                    <div class="mb-3">
+                                        <h6 class="text-white bg-dark p-2 rounded text-center">{{ departamento }}</h6>
+                                        {% include 'tareas/lista_tareas.html' with tareas=tareas %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <!-- ✅ Vista para Usuarios -->
+            <div class="col-12">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="mb-0"><i class="fas fa-user"></i> Tareas Pendientes (Usuario)</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- 🔹 Tareas Propias -->
+                            <div class="col-md-4">
+                                <h5 class="bg-success text-white p-2 rounded">Tareas Propias</h5>
+                                {% include 'tareas/lista_tareas.html' with tareas=tareas_propias query=query %}
+                            </div>
+
+                            <!-- 🔹 Tareas Sin Asignar -->
+                            <div class="col-md-4">
+                                <h5 class="bg-warning text-dark p-2 rounded">Tareas Sin Asignar</h5>
+                                {% include 'tareas/lista_tareas.html' with tareas=tareas_sin_asignar query=query %}
+                            </div>
+
+                            <!-- 🔹 Tareas Asignadas al Usuario -->
+                            <div class="col-md-4">
+                                <h5 class="bg-info text-white p-2 rounded">Tareas Asignadas</h5>
+                                {% include 'tareas/lista_tareas.html' with tareas=tareas_asignadas query=query %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

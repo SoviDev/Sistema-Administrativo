@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-building"></i> Departamentos</h2>
+    <table class="table mt-3">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for departamento in departamentos %}
+            <tr>
+                <td>{{ departamento.nombre }}</td>
+                <td>
+                    <a href="{% url 'usuarios:editar_departamento' departamento.id %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Editar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

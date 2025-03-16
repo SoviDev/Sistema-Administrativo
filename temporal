@@ -1,0 +1,31 @@
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_DB: sistema_administrativo
+      POSTGRES_USER: "POSTGRES_USER"
+      POSTGRES_PASSWORD: "POSTGRES_PASSWORD"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: django_app
+    restart: always  # Asegura que se autoarranque
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "DATABASE_URL"
+
+volumes:
+  postgres_data:

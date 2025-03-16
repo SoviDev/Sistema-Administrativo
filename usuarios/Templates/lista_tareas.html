@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-list-task"></i> Tareas</h2>
+    <table class="table mt-3">
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Estado</th>
+                <th>Departamento</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tarea in tareas %}
+            <tr>
+                <td>{{ tarea.titulo }}</td>
+                <td>{{ tarea.estado }}</td>
+                <td>{{ tarea.departamento.nombre }}</td>
+                <td>
+                    <a href="{% url 'tareas:editar_tarea' tarea.id %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i> Editar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

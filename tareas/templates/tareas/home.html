@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container text-center mt-5">
+        <h1>Bienvenido al Sistema Administrativo</h1>
+        {% if user.is_authenticated %}
+            <p>Hola, {{ user.username }}. ¡Esperamos que tengas un gran día!</p>
+        {% else %}
+            <p>Por favor, <a href="{% url 'usuarios:login' %}">inicia sesión</a> </p>
+        {% endif %}
+    </div>
+{% endblock %}

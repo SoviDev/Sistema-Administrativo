@@ -1,0 +1,4 @@
+python-dotenv
+Django
+psycopg2-binary  # Para conectar con PostgreSQL
+dj-database-url  # Para manejar la configuración de la base de datos con variables de entorno

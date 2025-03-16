@@ -1,0 +1,6 @@
+# Ignorar la carpeta Documentos
+Documentos/
+.env
+staticfiles/
+ssh 209.38.75.251
+ssh 209.38.75.251.pub

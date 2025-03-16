@@ -1,0 +1,28 @@
+<div class="container mt-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0"><i class="fas fa-user"></i> Tareas Pendientes (Usuario)</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- 🔹 Tareas Propias -->
+                <div class="col-md-4">
+                    <h5 class="bg-success text-white p-2 rounded">Tareas Propias</h5>
+                    {% include 'tareas/lista_tareas.html' with tareas=tareas_propias query=query %}
+                </div>
+
+                <!-- 🔹 Tareas sin Asignar en su Departamento -->
+                <div class="col-md-4">
+                    <h5 class="bg-warning text-white p-2 rounded">Tareas sin Asignar</h5>
+                    {% include 'tareas/lista_tareas.html' with tareas=tareas_sin_asignar query=query %}
+                </div>
+
+                <!-- 🔹 Tareas Asignadas al Usuario -->
+                <div class="col-md-4">
+                    <h5 class="bg-info text-white p-2 rounded">Tareas Asignadas</h5>
+                    {% include 'tareas/lista_tareas.html' with tareas=tareas_asignadas query=query %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
