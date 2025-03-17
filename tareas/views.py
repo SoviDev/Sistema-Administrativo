@@ -61,7 +61,7 @@ def tareas_nueva(request):
                 accion=f"Tarea creada por {request.user.username}"
             )
 
-            return redirect('tareas_pendientes')  
+            return redirect('tareas:tareas_pendientes')  
         else:
             print("Errores en el formulario:", form.errors)  
     else:
@@ -202,7 +202,7 @@ def tarea_editar(request, tarea_id):
                         usuario=request.user,
                         accion=f"Tarea editada por {request.user.username}"
                     )
-                    return redirect('tareas_pendientes')
+                    return redirect('tareas:tareas_pendientes')
 
             except ValidationError as e:
                 form.add_error(None, e.message)
@@ -223,7 +223,7 @@ def tareas_historial(request, tarea_id):
     tareas_historial = HistorialTarea.objects.filter(tarea=tarea).order_by('-fecha_hora')
 
     return_to = request.GET.get("return_to", "tareas_historico")
-    return_to_url = reverse(return_to) if return_to in ["tareas_historico", "tareas_pendientes"] else reverse("tareas_historico")
+    return_to_url = reverse(f"tareas:return_to") if return_to in ["tareas:tareas_historico", "tareas:tareas_pendientes"] else reverse("tareas:tareas_historico")
 
     return render(request, 'tareas/tareas_historial.html', {
         'tarea': tarea,
