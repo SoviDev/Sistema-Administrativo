@@ -30,7 +30,7 @@ SECRET_KEY = "x79n!%g-te5-ya=a18f(oy-0ldaxfu^=u3qo+z=nffhqvy9ET_KEY"
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
+LOGIN_URL = "/usuarios/login/"
 
 # Application definition
 
