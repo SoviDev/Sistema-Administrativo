@@ -16,7 +16,7 @@ class Tarea(models.Model):
     descripcion = models.TextField()
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
     progreso = models.IntegerField(null=True, blank=True, default=0)
-    creador = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="tareas_creadas", on_delete=models.CASCADE)
+    creador = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="tareas_creadas", on_delete=models.CASCADE, null=False, blank=False)
     departamento = models.ForeignKey(Departamento, on_delete=models.SET_NULL, null=True, blank=True)
     asignado_a = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="tareas_asignadas", on_delete=models.SET_NULL, null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
