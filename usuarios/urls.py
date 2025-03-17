@@ -1,11 +1,12 @@
 from django.urls import path
-from .views import lista_usuarios, lista_departamentos, registro_admin, editar_usuario, editar_departamento, crear_departamento
+from .views import lista_usuarios, lista_departamentos, registro_admin, editar_usuario, editar_departamento, crear_departamento,restablecer_contrasena
 from django.contrib.auth import views as auth_views
 
 app_name = "usuarios"
 
 urlpatterns = [
     path('usuarios/', lista_usuarios, name='lista_usuarios'),
+    path('restablecer_contrasena/<int:usuario_id>/', restablecer_contrasena, name='restablecer_contrasena'),
     path('departamentos/', lista_departamentos, name='lista_departamentos'),
     path('departamentos/crear/', crear_departamento, name='crear_departamento'),
     path('registro/', registro_admin, name='registro_admin'),

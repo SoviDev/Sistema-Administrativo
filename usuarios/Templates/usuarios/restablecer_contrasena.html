@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-lg">
+        <div class="card-header bg-dark text-white">
+            <h2 class="mb-0"><i class="bi bi-key-fill"></i> Restablecer Contraseña</h2>
+        </div>
+        <div class="card-body">
+            <p><strong>Usuario:</strong> {{ usuario.username }}</p>
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="nueva_contrasena" class="form-label">Nueva Contraseña</label>
+                    <input type="password" name="nueva_contrasena" id="nueva_contrasena" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="confirmar_contrasena" class="form-label">Confirmar Contraseña</label>
+                    <input type="password" name="confirmar_contrasena" id="confirmar_contrasena" class="form-control" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-shield-lock-fill"></i> Restablecer Contraseña
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

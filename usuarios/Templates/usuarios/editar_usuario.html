@@ -2,11 +2,59 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Editar Usuario</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Guardar cambios</button>
-    </form>
+    <div class="card shadow-lg">
+        <div class="card-header bg-dark text-white">
+            <h2 class="mb-0"><i class="bi bi-pencil-square"></i> Editar Usuario</h2>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="username" class="form-label">Nombre de Usuario</label>
+                    <input type="text" name="username" id="username" class="form-control" value="{{ usuario.username }}">
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">Correo Electrónico</label>
+                    <input type="email" name="email" id="email" class="form-control" value="{{ usuario.email }}">
+                </div>
+
+                <div class="mb-3">
+                    <label for="telefono" class="form-label">Teléfono</label>
+                    <input type="text" name="telefono" id="telefono" class="form-control" value="{{ usuario.telefono }}">
+                </div>
+
+                <div class="mb-3">
+                    <label for="departamento" class="form-label">Departamento</label>
+                    <select name="departamento" id="departamento" class="form-control">
+                        <option value="">-- Seleccionar --</option>
+                        {% for depto in departamentos %}
+                            <option value="{{ depto.id }}" {% if usuario.departamento.id == depto.id %}selected{% endif %}>
+                                {{ depto.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if request.user.is_superuser %}
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="es_admin" id="es_admin" class="form-check-input" {% if usuario.is_superuser %}checked{% endif %}>
+                    <label class="form-check-label" for="es_admin">Administrador (Superusuario)</label>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-save"></i> Guardar Cambios
+                </button>
+            </form>
+
+            {% if request.user.is_superuser %}
+            <a href="{% url 'usuarios:restablecer_contrasena' usuario.id %}" class="btn btn-warning w-100 mt-2">
+                <i class="bi bi-key"></i> Restablecer Contraseña
+            </a>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}
