@@ -1,3 +1,4 @@
+version: '3.8'
 
 services:
   db:
@@ -5,7 +6,7 @@ services:
     container_name: postgres_db
     restart: always
     env_file:
-      - .env  # 🔹 Cargar variables desde .env
+      - .env
     ports:
       - "5432:5432"
     volumes:
@@ -15,15 +16,30 @@ services:
     build: .
     container_name: django_app
     restart: always
-    command: python manage.py runserver 0.0.0.0:8000
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - .:/code
-    ports:
-      - "8000:8000"
+      - static_volume:/code/staticfiles  # 🔹 Compartir archivos estáticos
+      - media_volume:/code/media  # 🔹 Compartir archivos de media (opcional)
+    expose:
+      - "8000"
     depends_on:
       - db
-    env_file:
-      - .env  # 🔹 Cargar variables desde .env
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./core/nginx/nginx.conf:/etc/nginx/nginx.conf:ro  # 🔹 Configuración de Nginx
+      - static_volume:/code/staticfiles  # 🔹 Servir archivos estáticos
+      - media_volume:/code/media  # 🔹 Servir archivos de media (opcional)
+    depends_on:
+      - web
 
 volumes:
   postgres_data:
+  static_volume:
+  media_volume:
