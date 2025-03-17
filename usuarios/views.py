@@ -7,13 +7,13 @@ from .forms import CustomUserCreationForm, DepartamentoForm
 @login_required
 def lista_usuarios(request):
     usuarios = CustomUser.objects.all()
-    return render(request, 'lista_usuarios.html', {'usuarios': usuarios})
+    return render(request, 'usuarios/lista_usuarios.html', {'usuarios': usuarios})
 
 
 @login_required
 def lista_departamentos(request):
     departamentos = Departamento.objects.all()
-    return render(request, 'lista_departamentos.html', {'departamentos': departamentos})
+    return render(request, 'usuarios/lista_departamentos.html', {'departamentos': departamentos})
 
 
 @login_required
@@ -25,7 +25,7 @@ def registro_admin(request):
             return redirect('usuarios:lista_usuarios')  # Redirige a la lista de usuarios
     else:
         form = CustomUserCreationForm()
-    return render(request, 'registro_admin.html', {'form': form})
+    return render(request, 'usuarios/registro_admin.html', {'form': form})
 
 
 @login_required
@@ -35,10 +35,10 @@ def editar_usuario(request, usuario_id):
         form = CustomUserCreationForm(request.POST, instance=usuario)
         if form.is_valid():
             form.save()
-            return redirect('lista_usuarios')
+            return redirect('usuarios:lista_usuarios')
     else:
         form = CustomUserCreationForm(instance=usuario)
-    return render(request, 'editar_usuario.html', {'form': form, 'usuario': usuario})
+    return render(request, 'usuarios/editar_usuario.html', {'form': form, 'usuario': usuario})
 
 
 @login_required
@@ -51,7 +51,7 @@ def editar_departamento(request, departamento_id):
             return redirect('usuarios:lista_departamentos')
     else:
         form = DepartamentoForm(instance=departamento)
-    return render(request, 'editar_departamento.html', {'form': form, 'departamento': departamento})
+    return render(request, 'usuarios/editar_departamento.html', {'form': form, 'departamento': departamento})
 
 @login_required    
 def crear_departamento(request):
@@ -63,7 +63,7 @@ def crear_departamento(request):
     else:
         form = DepartamentoForm()
 
-    return render(request, 'crear_departamento.html', {'form': form})
+    return render(request, 'usuarios/crear_departamento.html', {'form': form})
     departamento = get_object_or_404(Departamento, id=departamento_id)
     if request.method == "POST":
         form = DepartamentoForm(request.POST, instance=departamento)

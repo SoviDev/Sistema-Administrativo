@@ -18,8 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
+    path('', include('tareas.urls')),
     path('admin/', admin.site.urls),
-    path('', include('tareas.urls')),  # Incluir las rutas de autenticación
     path('usuarios/', include('usuarios.urls', namespace="usuarios")),  # ✅ Namespace agregado
     path('tareas/', include('tareas.urls', namespace='tareas')),  # ✅ Incluir namespace
 ]

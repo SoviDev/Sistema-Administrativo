@@ -12,9 +12,9 @@ urlpatterns = [
     path('editar/<int:usuario_id>/', editar_usuario, name='editar_usuario'),
     path('departamentos/editar/<int:departamento_id>/', editar_departamento, name='editar_departamento'),
     path('cambiar_contrasena/', auth_views.PasswordChangeView.as_view(
-        template_name="cambiar_contrasena.html",  # 🔹 Sin prefijo "usuarios/"
+        template_name="usuarios/cambiar_contrasena.html",  # 🔹 Sin prefijo "usuarios/"
         success_url="/"
     ), name='cambiar_contrasena'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),  # ✅ Agregar logout
-    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('login/', auth_views.LoginView.as_view(template_name='usuarios/login.html'), name='login'),
 ]
