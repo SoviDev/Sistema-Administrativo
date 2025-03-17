@@ -47,5 +47,50 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const departamentoSelect = document.getElementById("id_departamento");
+        const usuarioSelect = document.getElementById("id_asignado_a");
+    
+        function cargarUsuarios(deptoId) {
+            if (!deptoId) return;
+    
+            fetch(`/obtener_usuarios_por_departamento/?departamento_id=${deptoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    usuarioSelect.innerHTML = "<option value=''>---------</option>";
+    
+                    if (data.error) {
+                        console.error("Error:", data.error);
+                        return;
+                    }
+    
+                    data.forEach(user => {
+                        let option = new Option(user.username, user.id);
+                        usuarioSelect.appendChild(option);
+                    });
+    
+                    // Mantener el usuario previamente seleccionado (si existe)
+                    const usuarioSeleccionado = "{{ form.asignado_a.value|default:'' }}";
+                    if (usuarioSeleccionado) {
+                        usuarioSelect.value = usuarioSeleccionado;
+                    }
+                })
+                .catch(error => console.error("Error al obtener usuarios:", error));
+        }
+    
+        // Cargar usuarios al inicio si hay un departamento seleccionado
+        if (departamentoSelect.value) {
+            cargarUsuarios(departamentoSelect.value);
+        }
+    
+        // Actualizar usuarios cuando cambia el departamento
+        departamentoSelect.addEventListener("change", function () {
+            cargarUsuarios(this.value);
+        });
+    });
+    </script>
+    
+    
 {% endblock %}
 

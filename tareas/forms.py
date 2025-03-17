@@ -86,26 +86,30 @@ class TareaEditForm(forms.ModelForm):
         widgets = {
             'titulo': forms.TextInput(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'departamento': forms.Select(attrs={'class': 'form-control'}),
-            'asignado_a': forms.Select(attrs={'class': 'form-control'}),
+            'departamento': forms.Select(attrs={'class': 'form-control', 'id': 'id_departamento'}),
+            'asignado_a': forms.Select(attrs={'class': 'form-control', 'id': 'id_asignado_a'}),
             'estado': forms.Select(attrs={'class': 'form-control'}),
             'progreso': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 100}),
         }
 
     def __init__(self, *args, **kwargs):
-        self.tarea_original = kwargs['instance'] if 'instance' in kwargs else None
         super().__init__(*args, **kwargs)
 
-    def clean(self):
-        cleaned_data = super().clean()
+        # 🔹 Cargar los departamentos
+        self.fields['departamento'].queryset = Departamento.objects.all()
+        
+        # 🔹 Filtrar usuarios solo si hay un departamento seleccionado
+        self.fields['asignado_a'].queryset = User.objects.none()
 
-        # 🔹 Validar si otro usuario editó la tarea antes de guardar
-        if self.tarea_original and self.tarea_original.pk:
-            tarea_actual = Tarea.objects.get(pk=self.tarea_original.pk)
-            if tarea_actual.ultima_modificacion > self.tarea_original.ultima_modificacion:
-                raise ValidationError("⚠️ Otro usuario ha modificado esta tarea mientras la editabas. Refresca la página y revisa los cambios.")
+        if self.instance.pk and self.instance.departamento:
+            self.fields['asignado_a'].queryset = User.objects.filter(departamento=self.instance.departamento)
+        elif 'departamento' in self.data:
+            try:
+                departamento_id = int(self.data.get('departamento'))
+                self.fields['asignado_a'].queryset = User.objects.filter(departamento_id=departamento_id)
+            except (ValueError, TypeError):
+                pass
 
-        return cleaned_data
 
 
 class RegistroAdminForm(CustomUserCreationForm):

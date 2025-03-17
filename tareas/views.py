@@ -268,16 +268,17 @@ def registro_admin(request):
 
     return render(request, 'tareas/registro_admin.html', {'form': form})
 
+@login_required
 def obtener_usuarios_por_departamento(request):
-    departamento_id = request.GET.get('departamento_id')
+    departamento_id = request.GET.get("departamento_id")
 
     if not departamento_id:
-        return JsonResponse({'error': 'No se proporcionó un departamento'}, status=400)
+        return JsonResponse({"error": "No se proporcionó un departamento"}, status=400)
 
-    usuarios = list(CustomUser.objects.filter(departamento_id=departamento_id).values('id', 'username'))
+    usuarios = list(CustomUser.objects.filter(departamento_id=departamento_id).values("id", "username"))
 
     if not usuarios:
-        return JsonResponse({'mensaje': 'No hay usuarios registrados en este departamento'}, status=200)
+        return JsonResponse({"mensaje": "No hay usuarios registrados en este departamento"}, status=200)
 
     return JsonResponse(usuarios, safe=False)
 

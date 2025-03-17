@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
-from .views import lista_tareas, editar_tarea
+from .views import lista_tareas, editar_tarea, obtener_usuarios_por_departamento
 
 app_name = "tareas"
 
@@ -25,4 +25,5 @@ urlpatterns = [
     path("api/usuarios_por_departamento/<int:depto_id>/", views.usuarios_por_departamento, name="usuarios_por_departamento"),
     path('', lista_tareas, name='lista_tareas'),
     path('editar/<int:pk>/', editar_tarea, name='editar_tarea'),
+    path("obtener_usuarios_por_departamento/", obtener_usuarios_por_departamento, name="obtener_usuarios_por_departamento"),
 ]
