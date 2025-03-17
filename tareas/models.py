@@ -1,10 +1,12 @@
+from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.utils.timezone import now
 from django.conf import settings  # ✅ Para usar AUTH_USER_MODEL
 from django.db import models
 from usuarios.models import Departamento  # 🔹 Importamos correctamente desde usuarios
 
-class Tarea(models.Model):
+User = get_user_model()
+class Tarea(models.Model):   
     ESTADOS = [
         ('pendiente', 'Pendiente'),
         ('en_progreso', 'En Progreso'),
@@ -16,7 +18,7 @@ class Tarea(models.Model):
     descripcion = models.TextField()
     estado = models.CharField(max_length=20, choices=ESTADOS, default='pendiente')
     progreso = models.IntegerField(null=True, blank=True, default=0)
-    creador = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="tareas_creadas", on_delete=models.CASCADE, null=False, blank=False)
+    creador = models.ForeignKey(settings.AUTH_USER_MODEL,related_name="tareas_creadas",on_delete=models.CASCADE, null=False,blank=False, )
     departamento = models.ForeignKey(Departamento, on_delete=models.SET_NULL, null=True, blank=True)
     asignado_a = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="tareas_asignadas", on_delete=models.SET_NULL, null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)

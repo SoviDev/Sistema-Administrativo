@@ -16,11 +16,15 @@ from usuarios.models import CustomUser
 
 User = get_user_model()
 
+#Este se tiene que remplazar con un erro:
+usuario_por_defecto= User.objects.first()
+Tarea.objects.filter(creador__isnull=True).update(creador=usuario_por_defecto)
+
 usuario = get_user_model()  # 🔹 Obtener el modelo de usuario extendido
 def es_superusuario(user):
     return user.is_superuser
 
-def register(request):
+def register(request): 
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
@@ -46,31 +50,34 @@ def tareas_pendientes(request):
 @login_required
 def tareas_nueva(request):
     if request.method == 'POST':
-        form = TareaForm(request.POST, usuario=request.user)
+        form = TareaForm(request.POST)
         if form.is_valid():
             nueva_tarea = form.save(commit=False)
-            nueva_tarea.creador = request.user  # Registrar quién la creó
-            if not nueva_tarea.progreso:
-                nueva_tarea.progreso = 0  
+
+            # 🔹 Validación adicional para asegurar que la tarea tenga un creador
+            if not request.user or not request.user.is_authenticated:
+                messages.error(request, "Error: No puedes crear una tarea sin estar autenticado.")
+                return redirect('tareas:tareas_pendientes')
+
+            nueva_tarea.creador = request.user  # ✅ Asigna el usuario autenticado como creador
+            
             nueva_tarea.save()
 
-            # Guardar en el historial
+            # Guardar en el historial de la tarea
             HistorialTarea.objects.create(
                 tarea=nueva_tarea,
                 usuario=request.user,
                 accion=f"Tarea creada por {request.user.username}"
             )
 
-            return redirect('tareas:tareas_pendientes')  
+            messages.success(request, "Tarea creada exitosamente.")
+            return redirect('tareas:tareas_pendientes')
         else:
-            print("Errores en el formulario:", form.errors)  
+            messages.error(request, "Hubo un error en la creación de la tarea.")
     else:
-        form = TareaForm(usuario=request.user)
+        form = TareaForm()
 
-    return render(request, 'tareas/tareas_nueva.html', {
-        'form': form
-    })
-
+    return render(request, 'tareas/tareas_nueva.html', {'form': form})
 
 @login_required
 def tareas_pendientes(request):
@@ -98,7 +105,7 @@ def tareas_pendientes(request):
         }
 
         tareas_propias_admin = Tarea.objects.filter(
-            Q(creador=usuario) | Q(departamento__isnull=True, asignado_a__isnull=True)
+            Q(creador=usuario.id) | Q(departamento__isnull=True, asignado_a__isnull=True)
         ).exclude(estado__in=estados_excluidos) \
          .filter(Q(titulo__icontains=query) | Q(descripcion__icontains=query)) \
          .order_by("fecha_creacion")
@@ -215,15 +222,27 @@ def tarea_editar(request, tarea_id):
         'tarea': tarea
     })
 
-
 @login_required
 def tareas_historial(request, tarea_id):
     tarea = get_object_or_404(Tarea, id=tarea_id)
-    
     tareas_historial = HistorialTarea.objects.filter(tarea=tarea).order_by('-fecha_hora')
 
-    return_to = request.GET.get("return_to", "tareas_historico")
-    return_to_url = reverse(f"tareas:return_to") if return_to in ["tareas:tareas_historico", "tareas:tareas_pendientes"] else reverse("tareas:tareas_historico")
+    return_to = request.GET.get("return_to")
+
+    if return_to == "tareas_historico":  # ✅ Si viene de historial, regresar ahí
+        return_to_url = reverse("tareas:tareas_historico")
+    elif return_to:  # Si es otra vista válida, intentamos resolverla
+        try:
+            return_to_url = reverse(return_to)
+        except:
+            return_to_url = reverse("tareas:tareas_pendientes")  # Fallback a pendientes
+    else:  # Si no hay return_to, usamos REFERER o pendientes como último recurso
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            parsed_url = urlparse(referer)
+            return_to_url = parsed_url.path  # Extraemos solo la ruta
+        else:
+            return_to_url = reverse("tareas:tareas_pendientes")  # Default seguro
 
     return render(request, 'tareas/tareas_historial.html', {
         'tarea': tarea,

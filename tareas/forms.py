@@ -4,6 +4,7 @@ from .models import Tarea
 from django.contrib.auth import get_user_model
 from usuarios.models import CustomUser, Departamento
 
+
 User = get_user_model()
 
 class CustomUserCreationForm(UserCreationForm):
