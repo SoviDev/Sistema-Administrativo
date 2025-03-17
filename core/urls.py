@@ -18,8 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('', include('tareas.urls')),
+    path('', include('tareas.urls')),  # ✅ Mantener esto si quieres que "tareas" esté en "/"
     path('admin/', admin.site.urls),
-    path('usuarios/', include('usuarios.urls', namespace="usuarios")),  # ✅ Namespace agregado
-    path('tareas/', include('tareas.urls', namespace='tareas')),  # ✅ Incluir namespace
+    path('usuarios/', include('usuarios.urls', namespace="usuarios")),
 ]
