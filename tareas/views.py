@@ -13,6 +13,7 @@ from django import template
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from usuarios.models import CustomUser
+from django.http import HttpResponse
 
 User = get_user_model()
 
@@ -185,6 +186,7 @@ def tareas_pendientes(request):
         })
 
 @login_required
+@login_required
 def tarea_editar(request, tarea_id):
     tarea = get_object_or_404(Tarea, id=tarea_id)
 
@@ -194,25 +196,37 @@ def tarea_editar(request, tarea_id):
     if request.method == 'POST':
         form = TareaEditForm(request.POST, instance=tarea)
 
+        print(f"🔹 Datos recibidos en POST: {request.POST}")  # Ver datos recibidos
+
         if form.is_valid():
+            print("✅ Formulario válido. Procediendo a guardar la tarea...")
+
             try:
                 tarea_actual = Tarea.objects.get(pk=tarea.id)
+
                 if tarea_actual.fecha_actualizacion > tarea.fecha_actualizacion:
+                    print("⚠️ La tarea ha sido modificada por otro usuario.")
                     form.add_error(None, "⚠️ Otro usuario ha modificado esta tarea mientras la editabas. Refresca la página y revisa los cambios.")
                 else:
                     tarea_editada = form.save(commit=False)  # 🔹 Guardar sin commit
                     tarea_editada.ultima_modificacion_por = request.user  # Asignar usuario
                     tarea_editada.save()  # 🔹 Guardar la tarea
+                    print(f"✅ Tarea {tarea_editada.id} guardada correctamente.")
 
                     HistorialTarea.objects.create(
                         tarea=tarea_editada,
                         usuario=request.user,
                         accion=f"Tarea editada por {request.user.username}"
                     )
+
                     return redirect('tareas:tareas_pendientes')
 
             except ValidationError as e:
                 form.add_error(None, e.message)
+                print(f"❌ Error al guardar la tarea: {e}")
+
+        else:
+            print(f"❌ Formulario inválido. Errores: {form.errors}")
 
     else:
         form = TareaEditForm(instance=tarea)
@@ -221,6 +235,8 @@ def tarea_editar(request, tarea_id):
         'form': form,
         'tarea': tarea
     })
+
+
 
 @login_required
 def tareas_historial(request, tarea_id):

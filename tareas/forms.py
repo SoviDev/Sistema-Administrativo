@@ -97,18 +97,20 @@ class TareaEditForm(forms.ModelForm):
 
         # 🔹 Cargar los departamentos
         self.fields['departamento'].queryset = Departamento.objects.all()
-        
-        # 🔹 Filtrar usuarios solo si hay un departamento seleccionado
-        self.fields['asignado_a'].queryset = User.objects.none()
 
-        if self.instance.pk and self.instance.departamento:
-            self.fields['asignado_a'].queryset = User.objects.filter(departamento=self.instance.departamento)
-        elif 'departamento' in self.data:
+        # 🔹 Obtener el ID del departamento enviado en el formulario (si existe)
+        departamento_id = self.data.get('departamento') or (self.instance.departamento.id if self.instance.departamento else None)
+
+        if departamento_id:
             try:
-                departamento_id = int(self.data.get('departamento'))
-                self.fields['asignado_a'].queryset = User.objects.filter(departamento_id=departamento_id)
+                departamento_id = int(departamento_id)
+                self.fields['asignado_a'].queryset = CustomUser.objects.filter(departamento_id=departamento_id)
             except (ValueError, TypeError):
-                pass
+                self.fields['asignado_a'].queryset = CustomUser.objects.none()
+        else:
+            self.fields['asignado_a'].queryset = CustomUser.objects.none()
+
+
 
 
 

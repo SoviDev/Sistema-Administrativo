@@ -41,56 +41,109 @@
                     {{ form.asignado_a }}
                 </div>
 
-                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Guardar Cambios</button>
-                <a href="{% url 'tareas:tareas_pendientes' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Cancelar</a>
+                <button type="submit" id="btn-guardar" class="btn btn-success">
+                    <i class="bi bi-check-lg"></i> Guardar Cambios
+                </button>
+                <a href="{% url 'tareas:tareas_pendientes' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancelar
+                </a>
             </form>
         </div>
     </div>
 </div>
+
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const departamentoSelect = document.getElementById("id_departamento");
         const usuarioSelect = document.getElementById("id_asignado_a");
-    
-        function cargarUsuarios(deptoId) {
+        const btnGuardar = document.getElementById("btn-guardar");
+        let usuariosCargando = false;
+
+        function cargarUsuarios(deptoId, usuarioSeleccionado = null) {
             if (!deptoId) return;
-    
+
+            usuarioSelect.innerHTML = "<option value=''>Cargando...</option>";
+            usuarioSelect.disabled = true;
+            btnGuardar.disabled = true;
+            usuariosCargando = true;
+
             fetch(`/obtener_usuarios_por_departamento/?departamento_id=${deptoId}`)
                 .then(response => response.json())
                 .then(data => {
                     usuarioSelect.innerHTML = "<option value=''>---------</option>";
-    
+
                     if (data.error) {
                         console.error("Error:", data.error);
                         return;
                     }
-    
+
                     data.forEach(user => {
                         let option = new Option(user.username, user.id);
                         usuarioSelect.appendChild(option);
                     });
-    
-                    // Mantener el usuario previamente seleccionado (si existe)
-                    const usuarioSeleccionado = "{{ form.asignado_a.value|default:'' }}";
-                    if (usuarioSeleccionado) {
+
+                    // Si el usuario anterior sigue siendo válido, restaurarlo
+                    if (usuarioSeleccionado && data.some(user => user.id == usuarioSeleccionado)) {
                         usuarioSelect.value = usuarioSeleccionado;
+                    } else {
+                        usuarioSelect.value = ""; // Resetear si no es válido
                     }
                 })
-                .catch(error => console.error("Error al obtener usuarios:", error));
+                .catch(error => console.error("Error al obtener usuarios:", error))
+                .finally(() => {
+                    usuarioSelect.disabled = false;
+                    usuariosCargando = false;
+                    btnGuardar.disabled = false;
+                });
         }
-    
+
+        function validarYEnviarFormulario(event) {
+            if (usuariosCargando) {
+                event.preventDefault();
+                alert("⚠️ Espera a que los usuarios terminen de cargarse antes de guardar.");
+                return;
+            }
+
+            // Si el usuario seleccionado no pertenece al departamento actual, evitar envío
+            const usuarioActual = usuarioSelect.value;
+            const departamentoActual = departamentoSelect.value;
+            if (usuarioActual) {
+                fetch(`/obtener_usuarios_por_departamento/?departamento_id=${departamentoActual}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.some(user => user.id == usuarioActual)) {
+                            alert("⚠️ El usuario seleccionado no pertenece al departamento actual.");
+                            usuarioSelect.value = ""; // Reseteamos la selección
+                            event.preventDefault(); // Evitamos el envío del formulario
+                        }
+                    })
+                    .catch(error => console.error("Error en validación:", error));
+            }
+        }
+
         // Cargar usuarios al inicio si hay un departamento seleccionado
         if (departamentoSelect.value) {
-            cargarUsuarios(departamentoSelect.value);
+            cargarUsuarios(departamentoSelect.value, "{{ form.asignado_a.value|default:'' }}");
         }
-    
-        // Actualizar usuarios cuando cambia el departamento
+
+        // Manejar cambio de departamento sin perder selección de usuario
         departamentoSelect.addEventListener("change", function () {
-            cargarUsuarios(this.value);
+            const usuarioActual = usuarioSelect.value; // Guardar usuario actual
+            cargarUsuarios(this.value, usuarioActual);
+        });
+
+        // Validar antes de enviar
+        document.querySelector("form").addEventListener("submit", validarYEnviarFormulario);
+    });
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const formulario = document.querySelector("form");
+
+        formulario.addEventListener("submit", function (event) {
+            console.log("🚀 Formulario enviado");  // 🔹 Ver si el botón "Guardar" funciona
         });
     });
-    </script>
-    
-    
-{% endblock %}
+</script>
 
+{% endblock %}
