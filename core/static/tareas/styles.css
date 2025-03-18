@@ -1,0 +1,40 @@
+/* Estilos generales */
+body {
+    padding-top: 70px; /* Ajuste para que el navbar fijo no tape el contenido */
+}
+
+/* Estilos para los estados de las tareas */
+.badge-pendiente {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.badge-en-proceso {
+    background-color: #17a2b8 !important;
+    color: white !important;
+}
+
+.badge-completada {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+.badge-cancelada {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+/* Ajusta el ancho del select para mostrar el contenido completo */
+#id_departamento {
+    width: auto !important;
+    min-width: 250px;
+    max-width: 100%;
+    display: block;
+}
+
+/* Asegura que las opciones dentro del select sean visibles */
+#id_departamento option {
+    white-space: normal; /* Permite que el texto se muestre en varias líneas */
+    word-wrap: break-word;
+    overflow: visible;
+}
