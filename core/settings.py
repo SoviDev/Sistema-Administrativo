@@ -134,7 +134,7 @@ USE_TZ = True
 
 BASE_DIR = "."
 
-STATIC_URL = '/static/'
+STATIC_URL = 'code/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = []
 
