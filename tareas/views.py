@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import CustomUserCreationForm, TareaForm, TareaEditForm, RegistroAdminForm, CustomUser
 from .models import HistorialTarea, Departamento, Tarea
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from datetime import timedelta, datetime
 from django.utils.timezone import now
@@ -13,19 +13,37 @@ from django import template
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from usuarios.models import CustomUser
-from django.http import HttpResponse
+import unicodedata
 
 User = get_user_model()
 
 #Este se tiene que remplazar con un erro:
-usuario_por_defecto= User.objects.first()
-Tarea.objects.filter(creador__isnull=True).update(creador=usuario_por_defecto)
+#usuario_por_defecto= User.objects.first()
+#Tarea.objects.filter(creador__isnull=True).update(creador=usuario_por_defecto)
 
 usuario = get_user_model()  # 🔹 Obtener el modelo de usuario extendido
 def es_superusuario(user):
+    """
+    Verifica si un usuario es superusuario.
+    
+    Args:
+        user (User): Usuario a verificar.
+        
+    Returns:
+        bool: True si el usuario es superusuario, False en caso contrario.
+    """
     return user.is_superuser
 
 def register(request): 
+    """
+    Vista para el registro de nuevos usuarios.
+    
+    Args:
+        request (HttpRequest): Objeto de solicitud HTTP.
+        
+    Returns:
+        HttpResponse: Renderiza el formulario de registro o redirige al home si el registro es exitoso.
+    """
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
@@ -38,84 +56,128 @@ def register(request):
     return render(request, 'tareas/register.html', {'form': form})
 
 def home(request):
+    """
+    Vista principal de la aplicación.
+    
+    Args:
+        request (HttpRequest): Objeto de solicitud HTTP.
+        
+    Returns:
+        HttpResponse: Renderiza la página principal.
+    """
     return render(request, 'tareas/home.html')
 
 @login_required
 def configuracion(request):
+    """
+    Vista para la configuración del usuario.
+    
+    Args:
+        request (HttpRequest): Objeto de solicitud HTTP.
+        
+    Returns:
+        HttpResponse: Renderiza la página de configuración.
+    """
     return render(request, 'tareas/configuracion.html')
 
-@login_required
-def tareas_pendientes(request):
-    return render(request, 'tareas/tareas_pendientes.html')
-
-@login_required
-def tareas_nueva(request):
-    if request.method == 'POST':
-        form = TareaForm(request.POST)
-        if form.is_valid():
-            nueva_tarea = form.save(commit=False)
-
-            # 🔹 Validación adicional para asegurar que la tarea tenga un creador
-            if not request.user or not request.user.is_authenticated:
-                messages.error(request, "Error: No puedes crear una tarea sin estar autenticado.")
-                return redirect('tareas:tareas_pendientes')
-
-            nueva_tarea.creador = request.user  # ✅ Asigna el usuario autenticado como creador
-            
-            nueva_tarea.save()
-
-            # Guardar en el historial de la tarea
-            HistorialTarea.objects.create(
-                tarea=nueva_tarea,
-                usuario=request.user,
-                accion=f"Tarea creada por {request.user.username}"
-            )
-
-            messages.success(request, "Tarea creada exitosamente.")
-            return redirect('tareas:tareas_pendientes')
-        else:
-            messages.error(request, "Hubo un error en la creación de la tarea.")
-    else:
-        form = TareaForm()
-
-    return render(request, 'tareas/tareas_nueva.html', {'form': form})
+def normalizar_texto(texto):
+    """
+    Normaliza un texto eliminando acentos y convirtiéndolo a minúsculas.
+    """
+    if not texto:
+        return ""
+    texto_normalizado = unicodedata.normalize('NFKD', texto).encode('ASCII', 'ignore').decode('ASCII')
+    return texto_normalizado.lower()
 
 @login_required
 def tareas_pendientes(request):
+    """
+    Vista que muestra las tareas pendientes del usuario.
+    Para superusuarios, muestra todas las tareas pendientes organizadas por departamento.
+    Para usuarios normales, muestra sus tareas propias, sin asignar y asignadas.
+    """
     usuario = request.user
     estados_excluidos = ["completada", "cancelada"]
-    query = request.GET.get("q", "").strip()
+    query = normalizar_texto(request.GET.get("q", "").strip())
+    departamento_filtro = request.GET.get("departamento", "").strip()
+    usuario_filtro = request.GET.get("usuario", "").strip()
+
+    # Crear el filtro de búsqueda
+    def crear_filtro_busqueda(query):
+        if not query:
+            return Q()
+        query_normalizado = normalizar_texto(query)
+        return (
+            Q(titulo__icontains=query_normalizado) |
+            Q(descripcion__icontains=query_normalizado)
+        )
+
+    filtro_busqueda = crear_filtro_busqueda(query)
 
     if usuario.is_superuser:
         departamentos = Departamento.objects.all()
+        usuarios = CustomUser.objects.all().order_by('username')
 
-        tareas_por_departamento = {
-            depto.nombre: [
-                {
-                    'tarea': tarea,
-                    'puede_editar': tarea.puede_editar(usuario),
-                    'asignado': tarea.asignado_a.username if tarea.asignado_a else "No asignado",
-                    'creador': tarea.creador.username
-                }
-                for tarea in Tarea.objects.filter(departamento=depto)
-                .exclude(estado__in=estados_excluidos)
-                .filter(Q(titulo__icontains=query) | Q(descripcion__icontains=query))
-                .order_by("fecha_creacion")
-            ]
-            for depto in departamentos
-        }
+        # Filtrar tareas por departamento y/o usuario si se especifica
+        tareas_por_departamento = {}
+        for depto in departamentos:
+            if departamento_filtro and str(depto.id) != departamento_filtro:
+                continue
+                
+            tareas = Tarea.objects.filter(departamento=depto)\
+                .exclude(estado__in=estados_excluidos)\
+                .filter(filtro_busqueda)
+                
+            # Aplicar filtro de usuario si existe
+            if usuario_filtro:
+                tareas = tareas.filter(
+                    Q(creador_id=usuario_filtro) |
+                    Q(asignado_a_id=usuario_filtro)
+                )
+                
+            tareas = tareas.order_by("fecha_creacion")
+                
+            if tareas.exists():
+                tareas_por_departamento[depto.nombre] = [
+                    {
+                        'tarea': tarea,
+                        'puede_editar': tarea.puede_editar(usuario),
+                        'asignado': tarea.asignado_a.username if tarea.asignado_a else "No asignado",
+                        'creador': tarea.creador.username
+                    }
+                    for tarea in tareas
+                ]
 
+        # Filtrar tareas propias del admin
         tareas_propias_admin = Tarea.objects.filter(
             Q(creador=usuario.id) | Q(departamento__isnull=True, asignado_a__isnull=True)
         ).exclude(estado__in=estados_excluidos) \
-         .filter(Q(titulo__icontains=query) | Q(descripcion__icontains=query)) \
-         .order_by("fecha_creacion")
+         .filter(filtro_busqueda)
 
+        # Filtrar tareas sin asignar
         tareas_sin_asignar = Tarea.objects.filter(
             departamento__isnull=False, asignado_a__isnull=True
         ).exclude(estado__in=estados_excluidos) \
-         .filter(Q(titulo__icontains=query) | Q(descripcion__icontains=query)) \
-         .order_by("fecha_creacion")
+         .filter(filtro_busqueda)
+
+        # Si hay un filtro de departamento, filtrar también las tareas propias y sin asignar
+        if departamento_filtro:
+            tareas_propias_admin = tareas_propias_admin.filter(departamento_id=departamento_filtro)
+            tareas_sin_asignar = tareas_sin_asignar.filter(departamento_id=departamento_filtro)
+
+        # Si hay un filtro de usuario, aplicarlo a las tareas propias y sin asignar
+        if usuario_filtro:
+            tareas_propias_admin = tareas_propias_admin.filter(
+                Q(creador_id=usuario_filtro) |
+                Q(asignado_a_id=usuario_filtro)
+            )
+            tareas_sin_asignar = tareas_sin_asignar.filter(
+                Q(creador_id=usuario_filtro) |
+                Q(asignado_a_id=usuario_filtro)
+            )
+
+        tareas_propias_admin = tareas_propias_admin.order_by("fecha_creacion")
+        tareas_sin_asignar = tareas_sin_asignar.order_by("fecha_creacion")
 
         return render(request, 'tareas/tareas_pendientes.html', {
             'tareas_por_departamento': tareas_por_departamento,
@@ -123,37 +185,43 @@ def tareas_pendientes(request):
                 {
                     'tarea': t,
                     'puede_editar': t.puede_editar(usuario),
-                    'creador': t.creador.username
+                    'creador': t.creador.username,
+                    'asignado': t.asignado_a.username if t.asignado_a else "No asignado"
                 } for t in tareas_propias_admin
             ],
             'tareas_sin_asignar': [
                 {
                     'tarea': t,
                     'puede_editar': usuario.is_superuser,
-                    'creador': t.creador.username
+                    'creador': t.creador.username,
+                    'asignado': t.asignado_a.username if t.asignado_a else "No asignado"
                 } for t in tareas_sin_asignar
             ],
             'es_admin': True,
-            'query': query
+            'query': query,
+            'departamentos': departamentos,
+            'usuarios': usuarios,
+            'departamento_filtro': departamento_filtro,
+            'usuario_filtro': usuario_filtro
         })
 
     else:
         tareas_propias = Tarea.objects.filter(
             creador=usuario
         ).exclude(estado__in=estados_excluidos) \
-         .filter(Q(titulo__icontains=query) | Q(descripcion__icontains=query)) \
+         .filter(filtro_busqueda) \
          .order_by("fecha_creacion")
 
         tareas_sin_asignar = Tarea.objects.filter(
             departamento=usuario.departamento, asignado_a=None
         ).exclude(estado__in=estados_excluidos) \
-         .filter(Q(titulo__icontains=query) | Q(descripcion__icontains=query)) \
+         .filter(filtro_busqueda) \
          .order_by("fecha_creacion")
 
         tareas_asignadas = Tarea.objects.filter(
             asignado_a=usuario
         ).exclude(estado__in=estados_excluidos) \
-         .filter(Q(titulo__icontains=query) | Q(descripcion__icontains=query)) \
+         .filter(filtro_busqueda) \
          .order_by("fecha_creacion")
 
         return render(request, 'tareas/tareas_pendientes.html', {
@@ -186,8 +254,45 @@ def tareas_pendientes(request):
         })
 
 @login_required
+def tareas_nueva(request):
+    """
+    Vista para crear una nueva tarea.
+    """
+    if request.method == 'POST':
+        form = TareaForm(request.POST)
+        if form.is_valid():
+            try:
+                nueva_tarea = form.save(commit=False)
+                nueva_tarea.creador = request.user
+                nueva_tarea.ultima_modificacion_por = request.user
+                nueva_tarea.save(usuario=request.user)  # Pasamos el usuario para que se registre el historial
+
+                messages.success(request, "Tarea creada exitosamente.")
+                return redirect('tareas:pendientes')
+            except Exception as e:
+                messages.error(request, f"Error al crear la tarea: {str(e)}")
+        else:
+            messages.error(request, "Por favor, corrige los errores en el formulario.")
+    else:
+        form = TareaForm()
+
+    return render(request, 'tareas/tareas_nueva.html', {'form': form})
+
 @login_required
 def tarea_editar(request, tarea_id):
+    """
+    Vista para editar una tarea existente.
+    
+    Args:
+        request (HttpRequest): Objeto de solicitud HTTP.
+        tarea_id (int): ID de la tarea a editar.
+        
+    Returns:
+        HttpResponse: Renderiza el formulario de edición o redirige a tareas pendientes si la edición es exitosa.
+        
+    Raises:
+        PermissionDenied: Si el usuario no tiene permisos para editar la tarea.
+    """
     tarea = get_object_or_404(Tarea, id=tarea_id)
 
     if not tarea.puede_editar(request.user):
@@ -196,37 +301,24 @@ def tarea_editar(request, tarea_id):
     if request.method == 'POST':
         form = TareaEditForm(request.POST, instance=tarea)
 
-        print(f"🔹 Datos recibidos en POST: {request.POST}")  # Ver datos recibidos
-
         if form.is_valid():
-            print("✅ Formulario válido. Procediendo a guardar la tarea...")
-
             try:
                 tarea_actual = Tarea.objects.get(pk=tarea.id)
 
                 if tarea_actual.fecha_actualizacion > tarea.fecha_actualizacion:
-                    print("⚠️ La tarea ha sido modificada por otro usuario.")
                     form.add_error(None, "⚠️ Otro usuario ha modificado esta tarea mientras la editabas. Refresca la página y revisa los cambios.")
                 else:
-                    tarea_editada = form.save(commit=False)  # 🔹 Guardar sin commit
-                    tarea_editada.ultima_modificacion_por = request.user  # Asignar usuario
-                    tarea_editada.save()  # 🔹 Guardar la tarea
-                    print(f"✅ Tarea {tarea_editada.id} guardada correctamente.")
+                    tarea_editada = form.save(commit=False)
+                    tarea_editada.ultima_modificacion_por = request.user
+                    tarea_editada.save(usuario=request.user)
 
-                    HistorialTarea.objects.create(
-                        tarea=tarea_editada,
-                        usuario=request.user,
-                        accion=f"Tarea editada por {request.user.username}"
-                    )
-
-                    return redirect('tareas:tareas_pendientes')
+                    return redirect('tareas:pendientes')
 
             except ValidationError as e:
                 form.add_error(None, e.message)
-                print(f"❌ Error al guardar la tarea: {e}")
 
         else:
-            print(f"❌ Formulario inválido. Errores: {form.errors}")
+            messages.error(request, "Por favor, corrige los errores en el formulario.")
 
     else:
         form = TareaEditForm(instance=tarea)
@@ -236,36 +328,46 @@ def tarea_editar(request, tarea_id):
         'tarea': tarea
     })
 
-
-
 @login_required
 def tareas_historial(request, tarea_id):
+    """
+    Vista que muestra el historial de cambios de una tarea.
+    """
     tarea = get_object_or_404(Tarea, id=tarea_id)
-    tareas_historial = HistorialTarea.objects.filter(tarea=tarea).order_by('-fecha_hora')
+    query = request.GET.get('q', '').strip()
+
+    # Obtenemos el historial con todos los campos relacionados
+    historial = HistorialTarea.objects.filter(tarea=tarea).select_related(
+        'usuario', 'tarea'
+    ).order_by('-fecha_hora')
+
+    # Agregamos información de depuración al contexto
+    debug_info = []
+    for registro in historial:
+        debug_info.append({
+            'id': registro.id,
+            'accion': registro.accion,
+            'usuario': registro.usuario.username if registro.usuario else 'Sistema',
+            'fecha': registro.fecha_hora,
+            'tarea_titulo': registro.tarea.titulo,
+            'tarea_estado': registro.tarea.get_estado_display(),
+        })
 
     return_to = request.GET.get("return_to")
-
-    if return_to == "tareas_historico":  # ✅ Si viene de historial, regresar ahí
-        return_to_url = reverse("tareas:tareas_historico")
-    elif return_to:  # Si es otra vista válida, intentamos resolverla
-        try:
-            return_to_url = reverse(return_to)
-        except:
-            return_to_url = reverse("tareas:tareas_pendientes")  # Fallback a pendientes
-    else:  # Si no hay return_to, usamos REFERER o pendientes como último recurso
-        referer = request.META.get('HTTP_REFERER')
-        if referer:
-            parsed_url = urlparse(referer)
-            return_to_url = parsed_url.path  # Extraemos solo la ruta
-        else:
-            return_to_url = reverse("tareas:tareas_pendientes")  # Default seguro
+    if return_to == "historico":
+        return_to_url = reverse("tareas:historico")
+    elif return_to:
+        return_to_url = reverse("tareas:" + return_to)
+    else:
+        return_to_url = reverse("tareas:pendientes")
 
     return render(request, 'tareas/tareas_historial.html', {
         'tarea': tarea,
-        'tareas_historial': tareas_historial,
+        'historial': historial,
+        'debug_info': debug_info,
         'return_to_url': return_to_url,
+        'query': query
     })
-
 
 @user_passes_test(lambda u: u.is_superuser)
 @login_required
@@ -313,6 +415,9 @@ def css_estado(value):
 
 @login_required
 def tareas_historico(request):
+    """
+    Vista que muestra el historial de tareas completadas y canceladas.
+    """
     usuario = request.user
     hoy = now().date()
     query = request.GET.get("q", "").strip()
@@ -340,21 +445,38 @@ def tareas_historico(request):
     else:
         rango_inicio = hoy - timedelta(days=30)
 
-    tareas_completadas = Tarea.objects.filter(estado="completada")
+    # Incluir tanto tareas completadas como canceladas
+    tareas_historicas = Tarea.objects.filter(
+        estado__in=["completada", "cancelada"]
+    )
 
     if rango_inicio:
-        tareas_completadas = tareas_completadas.filter(fecha_completada__gte=rango_inicio)
+        tareas_historicas = tareas_historicas.filter(
+            Q(fecha_completada__gte=rango_inicio) |
+            Q(fecha_actualizacion__gte=rango_inicio)
+        )
 
     if filtro == "rango" and fecha_inicio and fecha_fin:
-        tareas_completadas = tareas_completadas.filter(fecha_completada__range=[rango_inicio, rango_fin])
+        tareas_historicas = tareas_historicas.filter(
+            Q(fecha_completada__range=[rango_inicio, rango_fin]) |
+            Q(fecha_actualizacion__range=[rango_inicio, rango_fin])
+        )
 
     if query:
-        tareas_completadas = tareas_completadas.filter(Q(titulo__icontains=query) | Q(descripcion__icontains=query))
+        tareas_historicas = tareas_historicas.filter(
+            Q(titulo__icontains=query) |
+            Q(descripcion__icontains=query)
+        )
 
-    tareas = tareas_completadas.order_by("-fecha_completada") if usuario.is_superuser else tareas_completadas.filter(creador_id=usuario.id).order_by("-fecha_completada")
+    # Filtrar por usuario si no es superusuario
+    if not usuario.is_superuser:
+        tareas_historicas = tareas_historicas.filter(creador_id=usuario.id)
+
+    # Ordenar por la fecha más reciente (ya sea completada o actualizada)
+    tareas_historicas = tareas_historicas.order_by("-fecha_completada", "-fecha_actualizacion")
 
     return render(request, 'tareas/tareas_historico.html', {
-        'tareas': tareas,
+        'tareas': tareas_historicas,
         'es_admin': usuario.is_superuser,
         'filtro_seleccionado': filtro,
         'fecha_inicio': fecha_inicio,
@@ -362,15 +484,29 @@ def tareas_historico(request):
         'query': query,
     })
 
-
 @login_required
 def usuarios_por_departamento(request, depto_id):
-    """ Devuelve los usuarios de un departamento específico en formato JSON. """
-    usuarios = User.objects.filter(departamento_id=depto_id).values("id", "username")
-    return JsonResponse({"usuarios": list(usuarios)})
+    """
+    Vista que retorna los usuarios de un departamento específico.
+    """
+    try:
+        usuarios = CustomUser.objects.filter(departamento_id=depto_id).values('id', 'username')
+        return JsonResponse(list(usuarios), safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @login_required
 def tarea_completar(request, tarea_id):
+    """
+    Vista para marcar una tarea como completada.
+    
+    Args:
+        request (HttpRequest): Objeto de solicitud HTTP.
+        tarea_id (int): ID de la tarea a completar.
+        
+    Returns:
+        JsonResponse: Respuesta JSON indicando el éxito o error de la operación.
+    """
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
 
@@ -382,13 +518,8 @@ def tarea_completar(request, tarea_id):
     tarea.estado = 'completada'
     tarea.progreso = 100
     tarea.fecha_completada = now()
-    tarea.save()
-
-    HistorialTarea.objects.create(
-        tarea=tarea,
-        usuario=request.user,
-        accion=f"Tarea '{tarea.titulo}' completada por {request.user.username}"
-    )
+    tarea.ultima_modificacion_por = request.user
+    tarea.save(usuario=request.user)  # Pasamos el usuario para que se registre el historial
 
     return JsonResponse({'success': True, 'tarea_id': tarea.id})
 

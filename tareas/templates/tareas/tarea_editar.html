@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="container mt-4">
@@ -19,32 +20,47 @@
                 <div class="mb-3">
                     <label for="id_titulo" class="form-label">Título</label>
                     {{ form.titulo }}
+                    {% if form.titulo.errors %}
+                        <div class="invalid-feedback d-block">{{ form.titulo.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="mb-3">
                     <label for="id_descripcion" class="form-label">Descripción</label>
                     {{ form.descripcion }}
+                    {% if form.descripcion.errors %}
+                        <div class="invalid-feedback d-block">{{ form.descripcion.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="mb-3">
                     <label for="id_estado" class="form-label">Estado</label>
                     {{ form.estado }}
+                    {% if form.estado.errors %}
+                        <div class="invalid-feedback d-block">{{ form.estado.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="mb-3">
                     <label for="id_departamento" class="form-label">Departamento</label>
                     {{ form.departamento }}
+                    {% if form.departamento.errors %}
+                        <div class="invalid-feedback d-block">{{ form.departamento.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <div class="mb-3">
                     <label for="id_asignado_a" class="form-label">Asignado a</label>
                     {{ form.asignado_a }}
+                    {% if form.asignado_a.errors %}
+                        <div class="invalid-feedback d-block">{{ form.asignado_a.errors }}</div>
+                    {% endif %}
                 </div>
 
                 <button type="submit" id="btn-guardar" class="btn btn-success">
                     <i class="bi bi-check-lg"></i> Guardar Cambios
                 </button>
-                <a href="{% url 'tareas:tareas_pendientes' %}" class="btn btn-secondary">
+                <a href="{% url 'tareas:pendientes' %}" class="btn btn-secondary">
                     <i class="bi bi-arrow-left"></i> Cancelar
                 </a>
             </form>
@@ -60,65 +76,55 @@
         let usuariosCargando = false;
 
         function cargarUsuarios(deptoId, usuarioSeleccionado = null) {
-            if (!deptoId) return;
+            if (!deptoId) {
+                usuarioSelect.innerHTML = "<option value=''>---------</option>";
+                return;
+            }
 
-            usuarioSelect.innerHTML = "<option value=''>Cargando...</option>";
+            usuarioSelect.innerHTML = "<option value=''>Cargando usuarios...</option>";
             usuarioSelect.disabled = true;
             btnGuardar.disabled = true;
             usuariosCargando = true;
 
-            fetch(`/obtener_usuarios_por_departamento/?departamento_id=${deptoId}`)
-                .then(response => response.json())
-                .then(data => {
-                    usuarioSelect.innerHTML = "<option value=''>---------</option>";
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-                    if (data.error) {
-                        console.error("Error:", data.error);
-                        return;
-                    }
-
-                    data.forEach(user => {
-                        let option = new Option(user.username, user.id);
-                        usuarioSelect.appendChild(option);
-                    });
-
-                    // Si el usuario anterior sigue siendo válido, restaurarlo
-                    if (usuarioSeleccionado && data.some(user => user.id == usuarioSeleccionado)) {
-                        usuarioSelect.value = usuarioSeleccionado;
-                    } else {
-                        usuarioSelect.value = ""; // Resetear si no es válido
-                    }
-                })
-                .catch(error => console.error("Error al obtener usuarios:", error))
-                .finally(() => {
-                    usuarioSelect.disabled = false;
-                    usuariosCargando = false;
-                    btnGuardar.disabled = false;
+            fetch(`{% url 'tareas:usuarios_departamento' 0 %}`.replace('0', deptoId), {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al obtener usuarios');
+                }
+                return response.json();
+            })
+            .then(usuarios => {
+                usuarioSelect.innerHTML = "<option value=''>---------</option>";
+                
+                usuarios.forEach(usuario => {
+                    const option = document.createElement('option');
+                    option.value = usuario.id;
+                    option.textContent = usuario.username;
+                    usuarioSelect.appendChild(option);
                 });
-        }
 
-        function validarYEnviarFormulario(event) {
-            if (usuariosCargando) {
-                event.preventDefault();
-                alert("⚠️ Espera a que los usuarios terminen de cargarse antes de guardar.");
-                return;
-            }
-
-            // Si el usuario seleccionado no pertenece al departamento actual, evitar envío
-            const usuarioActual = usuarioSelect.value;
-            const departamentoActual = departamentoSelect.value;
-            if (usuarioActual) {
-                fetch(`/obtener_usuarios_por_departamento/?departamento_id=${departamentoActual}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.some(user => user.id == usuarioActual)) {
-                            alert("⚠️ El usuario seleccionado no pertenece al departamento actual.");
-                            usuarioSelect.value = ""; // Reseteamos la selección
-                            event.preventDefault(); // Evitamos el envío del formulario
-                        }
-                    })
-                    .catch(error => console.error("Error en validación:", error));
-            }
+                // Restaurar usuario seleccionado si existe
+                if (usuarioSeleccionado && usuarios.some(u => u.id == usuarioSeleccionado)) {
+                    usuarioSelect.value = usuarioSeleccionado;
+                }
+            })
+            .catch(error => {
+                console.error("Error al obtener usuarios:", error);
+                usuarioSelect.innerHTML = "<option value=''>Error al cargar usuarios</option>";
+            })
+            .finally(() => {
+                usuarioSelect.disabled = false;
+                usuariosCargando = false;
+                btnGuardar.disabled = false;
+            });
         }
 
         // Cargar usuarios al inicio si hay un departamento seleccionado
@@ -126,22 +132,19 @@
             cargarUsuarios(departamentoSelect.value, "{{ form.asignado_a.value|default:'' }}");
         }
 
-        // Manejar cambio de departamento sin perder selección de usuario
+        // Manejar cambio de departamento
         departamentoSelect.addEventListener("change", function () {
-            const usuarioActual = usuarioSelect.value; // Guardar usuario actual
+            const usuarioActual = usuarioSelect.value;
             cargarUsuarios(this.value, usuarioActual);
         });
 
         // Validar antes de enviar
-        document.querySelector("form").addEventListener("submit", validarYEnviarFormulario);
-    });
-</script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const formulario = document.querySelector("form");
-
-        formulario.addEventListener("submit", function (event) {
-            console.log("🚀 Formulario enviado");  // 🔹 Ver si el botón "Guardar" funciona
+        document.querySelector("form").addEventListener("submit", function(event) {
+            if (usuariosCargando) {
+                event.preventDefault();
+                alert("⚠️ Por favor, espera a que se carguen los usuarios antes de guardar.");
+                return;
+            }
         });
     });
 </script>

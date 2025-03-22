@@ -4,33 +4,95 @@
 <div class="container mt-4">
     <div class="card shadow-lg">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-            <h2 class="mb-0"><i class="bi bi-clock-history"></i> Historial de Tareas</h2>
+            <h2 class="mb-0">
+                <i class="bi bi-clock-history"></i> Historial de Tarea: {{ tarea.titulo }}
+            </h2>
             <a href="{{ return_to_url }}" class="btn btn-light">
                 <i class="bi bi-arrow-left"></i> Volver
             </a>
         </div>
         <div class="card-body">
-            <form method="GET" class="mb-3">
-                <input type="text" name="q" class="form-control" placeholder="Buscar en historial..." value="{{ query }}">
-                <button type="submit" class="btn btn-primary mt-2">Buscar</button>
+            <!-- Información actual de la tarea -->
+            <div class="alert alert-info mb-4">
+                <h5>Estado actual de la tarea:</h5>
+                <p class="mb-1"><strong>Título:</strong> {{ tarea.titulo }}</p>
+                <p class="mb-1"><strong>Estado:</strong> {{ tarea.get_estado_display }}</p>
+                <p class="mb-1"><strong>Progreso:</strong> {{ tarea.progreso }}%</p>
+                <p class="mb-1"><strong>Asignado a:</strong> {{ tarea.asignado_a.username|default:"No asignado" }}</p>
+                <p class="mb-1"><strong>Departamento:</strong> {{ tarea.departamento.nombre|default:"Sin departamento" }}</p>
+                <p class="mb-0"><strong>Última modificación:</strong> {{ tarea.fecha_actualizacion }}</p>
+            </div>
+
+            <form method="GET" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="Buscar en historial..." value="{{ query }}">
+                    <input type="hidden" name="return_to" value="{{ request.GET.return_to }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
             </form>
 
-            {% if tareas_historial %}
-                <ul class="list-group">
-                    {% for item in tareas_historial %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ item.tarea.titulo }}</strong>  
-                            <br>
-                            🕒 {{ item.fecha_hora|date:"d M Y H:i" }}  
-                            | 👤 {{ item.usuario.username }}  
-                            | 🔄 {{ item.accion }}
+            {% if historial %}
+                <div class="list-group">
+                    {% for item in historial %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between align-items-start">
+                            <div class="w-100">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">Registro #{{ item.id }}</h6>
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock"></i> {{ item.fecha_hora|date:"d M Y H:i" }}
+                                        {% if item.usuario %}
+                                        | <i class="bi bi-person"></i> {{ item.usuario.username }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="alert alert-light mb-0">
+                                    {{ item.accion|linebreaksbr }}
+                                </div>
+                            </div>
                         </div>
-                    </li>
+                    </div>
                     {% endfor %}
-                </ul>
+                </div>
+
+                <!-- Información de depuración -->
+                {% if debug_info %}
+                <div class="mt-4">
+                    <h5>Información detallada del historial:</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Acción</th>
+                                    <th>Usuario</th>
+                                    <th>Fecha</th>
+                                    <th>Título de tarea</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for info in debug_info %}
+                                <tr>
+                                    <td>{{ info.id }}</td>
+                                    <td>{{ info.accion }}</td>
+                                    <td>{{ info.usuario }}</td>
+                                    <td>{{ info.fecha|date:"d/m/Y H:i:s" }}</td>
+                                    <td>{{ info.tarea_titulo }}</td>
+                                    <td>{{ info.tarea_estado }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
             {% else %}
-                <p class="text-muted">No hay registros en el historial de esta tarea.</p>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No hay registros en el historial de esta tarea.
+                </div>
             {% endif %}
         </div>
     </div>

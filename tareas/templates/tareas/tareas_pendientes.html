@@ -1,84 +1,441 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="container mt-3 px-3">  
-    <!-- 🔍 Formulario de Búsqueda -->
-    <form method="GET" action="{% url 'tareas:tareas_pendientes' %}" class="mb-3">
-        <div class="input-group">
-            <input type="text" name="q" class="form-control" placeholder="Buscar tareas..." value="{{ query }}">
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-search"></i> Buscar
-            </button>
-        </div>
-    </form>
-
-    <div class="row">
-        {% if es_admin %}
-            <!-- ✅ Vista para Administradores -->
-            <div class="col-12">
-                <div class="card shadow-lg">
-                    <div class="card-header bg-primary text-white">
-                        <h2 class="mb-0"><i class="fas fa-users-cog"></i> Tareas Pendientes (Administrador)</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <!-- 🔹 Tareas Propias -->
-                            <div class="col-md-4">
-                                <h5 class="bg-secondary text-white p-2 rounded text-center">Tus Tareas Propias</h5>
-                                {% include 'tareas/lista_tareas.html' with tareas=tareas_propias_admin %}
-                            </div>
-
-                            <!-- 🔹 Tareas Sin Asignar -->
-                            <div class="col-md-4">
-                                <h5 class="bg-warning text-dark p-2 rounded text-center">Tareas Sin Asignar</h5>
-                                {% include 'tareas/lista_tareas.html' with tareas=tareas_sin_asignar %}
-                            </div>
-
-                            <!-- 🔹 Tareas por Departamento -->
-                            <div class="col-md-4">
-                                <h5 class="bg-info text-white p-2 rounded text-center">Tareas por Departamento</h5>
-                                {% for departamento, tareas in tareas_por_departamento.items %}
-                                    <div class="mb-3">
-                                        <h6 class="text-white bg-dark p-2 rounded text-center">{{ departamento }}</h6>
-                                        {% include 'tareas/lista_tareas.html' with tareas=tareas %}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
+<div class="container mt-4">
+    <!-- Barra de búsqueda y filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <form method="GET" action="{% url 'tareas:pendientes' %}" class="d-flex flex-wrap gap-2 align-items-center">
+                {% csrf_token %}
+                <div class="flex-grow-1">
+                    <div class="input-group">
+                        <input type="text" name="q" class="form-control" placeholder="Buscar tareas..." value="{{ query|default:'' }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
                     </div>
                 </div>
-            </div>
-        {% else %}
-            <!-- ✅ Vista para Usuarios -->
-            <div class="col-12">
-                <div class="card shadow-lg">
-                    <div class="card-header bg-primary text-white">
-                        <h2 class="mb-0"><i class="fas fa-user"></i> Tareas Pendientes (Usuario)</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <!-- 🔹 Tareas Propias -->
-                            <div class="col-md-4">
-                                <h5 class="bg-success text-white p-2 rounded">Tareas Propias</h5>
-                                {% include 'tareas/lista_tareas.html' with tareas=tareas_propias query=query %}
+
+                {% if es_admin %}
+                <div class="flex-shrink-0">
+                    <select name="departamento" class="form-select">
+                        <option value="">Todos los departamentos</option>
+                        {% for depto in departamentos %}
+                        <option value="{{ depto.id }}" {% if departamento_filtro == depto.id|stringformat:"s" %}selected{% endif %}>
+                            {{ depto.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex-shrink-0">
+                    <select name="usuario" class="form-select">
+                        <option value="">Todos los usuarios</option>
+                        {% for user in usuarios %}
+                        <option value="{{ user.id }}" {% if usuario_filtro == user.id|stringformat:"s" %}selected{% endif %}>
+                            {{ user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex-shrink-0">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                </div>
+                {% endif %}
+
+                {% if query or departamento_filtro or usuario_filtro %}
+                <div class="flex-shrink-0">
+                    <a href="{% url 'tareas:pendientes' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Limpiar filtros
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- 📊 Sección de Tareas -->
+    {% if es_admin %}
+        <!-- �� Vista de Administrador -->
+        {% if tareas_propias_admin %}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-circle"></i> Mis Tareas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for item in tareas_propias_admin %}
+                        <div class="task-item mb-3 p-3 border rounded {% if item.tarea.estado == 'en_proceso' %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0">{{ item.tarea.titulo }}</h5>
+                                <span class="badge {% if item.tarea.estado == 'pendiente' %}bg-warning text-dark{% elif item.tarea.estado == 'en_proceso' %}bg-info text-white{% else %}bg-secondary{% endif %}">
+                                    {{ item.tarea.get_estado_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> Creado por: {{ item.creador }}
+                                    {% if item.tarea.asignado_a %}
+                                        | 👤 Asignado a: {{ item.tarea.asignado_a.username }}
+                                    {% else %}
+                                        | 👤 No asignado
+                                    {% endif %}
+                                </small>
                             </div>
 
-                            <!-- 🔹 Tareas Sin Asignar -->
-                            <div class="col-md-4">
-                                <h5 class="bg-warning text-dark p-2 rounded">Tareas Sin Asignar</h5>
-                                {% include 'tareas/lista_tareas.html' with tareas=tareas_sin_asignar query=query %}
+                            <p class="mb-2">{{ item.tarea.descripcion }}</p>
+
+                            <div class="progress mb-3" style="height: 20px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ item.tarea.progreso }}%;" 
+                                     aria-valuenow="{{ item.tarea.progreso }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ item.tarea.progreso }}%
+                                </div>
                             </div>
 
-                            <!-- 🔹 Tareas Asignadas al Usuario -->
-                            <div class="col-md-4">
-                                <h5 class="bg-info text-white p-2 rounded">Tareas Asignadas</h5>
-                                {% include 'tareas/lista_tareas.html' with tareas=tareas_asignadas query=query %}
+                            <div class="btn-group">
+                                <a href="{% url 'tareas:historial' item.tarea.id %}?return_to=pendientes" 
+                                   class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-clock-history"></i> Historial
+                                </a>
+                                {% if item.puede_editar %}
+                                    <a href="{% url 'tareas:editar' item.tarea.id %}" 
+                                       class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </a>
+                                    <button onclick="completarTarea({{ item.tarea.id }})" 
+                                            class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-lg"></i> Completar
+                                    </button>
+                                {% endif %}
                             </div>
                         </div>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
         {% endif %}
-    </div>
+
+        {% if tareas_sin_asignar %}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Tareas Sin Asignar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for item in tareas_sin_asignar %}
+                        <div class="task-item mb-3 p-3 border rounded {% if item.tarea.estado == 'en_proceso' %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0">{{ item.tarea.titulo }}</h5>
+                                <span class="badge {% if item.tarea.estado == 'pendiente' %}bg-warning text-dark{% elif item.tarea.estado == 'en_proceso' %}bg-info text-white{% else %}bg-secondary{% endif %}">
+                                    {{ item.tarea.get_estado_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> Creado por: {{ item.creador }}
+                                </small>
+                            </div>
+
+                            <p class="mb-2">{{ item.tarea.descripcion }}</p>
+
+                            <div class="progress mb-3" style="height: 20px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ item.tarea.progreso }}%;" 
+                                     aria-valuenow="{{ item.tarea.progreso }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ item.tarea.progreso }}%
+                                </div>
+                            </div>
+
+                            <div class="btn-group">
+                                <a href="{% url 'tareas:historial' item.tarea.id %}?return_to=pendientes" 
+                                   class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-clock-history"></i> Historial
+                                </a>
+                                {% if item.puede_editar %}
+                                    <a href="{% url 'tareas:editar' item.tarea.id %}" 
+                                       class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </a>
+                                    <button onclick="completarTarea({{ item.tarea.id }})" 
+                                            class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-lg"></i> Completar
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% for departamento, tareas in tareas_por_departamento.items %}
+            {% if tareas %}
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-building"></i> {{ departamento }}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% for item in tareas %}
+                            <div class="task-item mb-3 p-3 border rounded {% if item.tarea.estado == 'en_proceso' %}bg-light{% endif %}">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="mb-0">{{ item.tarea.titulo }}</h5>
+                                    <span class="badge {% if item.tarea.estado == 'pendiente' %}bg-warning text-dark{% elif item.tarea.estado == 'en_proceso' %}bg-info text-white{% else %}bg-secondary{% endif %}">
+                                        {{ item.tarea.get_estado_display }}
+                                    </span>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-person"></i> Creado por: {{ item.creador }}
+                                        {% if item.asignado != "No asignado" %}
+                                            | 👤 Asignado a: {{ item.asignado }}
+                                        {% else %}
+                                            | 👤 No asignado
+                                        {% endif %}
+                                    </small>
+                                </div>
+
+                                <p class="mb-2">{{ item.tarea.descripcion }}</p>
+
+                                <div class="progress mb-3" style="height: 20px;">
+                                    <div class="progress-bar" role="progressbar" style="width: {{ item.tarea.progreso }}%;" 
+                                         aria-valuenow="{{ item.tarea.progreso }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ item.tarea.progreso }}%
+                                    </div>
+                                </div>
+
+                                <div class="btn-group">
+                                    <a href="{% url 'tareas:historial' item.tarea.id %}?return_to=pendientes" 
+                                       class="btn btn-sm btn-secondary">
+                                        <i class="bi bi-clock-history"></i> Historial
+                                    </a>
+                                    {% if item.puede_editar %}
+                                        <a href="{% url 'tareas:editar' item.tarea.id %}" 
+                                           class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                        <button onclick="completarTarea({{ item.tarea.id }})" 
+                                                class="btn btn-sm btn-success">
+                                            <i class="bi bi-check-lg"></i> Completar
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+
+    {% else %}
+        <!-- 👤 Vista de Usuario Normal -->
+        {% if tareas_propias %}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-circle"></i> Mis Tareas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for item in tareas_propias %}
+                        <div class="task-item mb-3 p-3 border rounded {% if item.tarea.estado == 'en_proceso' %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0">{{ item.tarea.titulo }}</h5>
+                                <span class="badge {% if item.tarea.estado == 'pendiente' %}bg-warning text-dark{% elif item.tarea.estado == 'en_proceso' %}bg-info text-white{% else %}bg-secondary{% endif %}">
+                                    {{ item.tarea.get_estado_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> Creado por: {{ item.creador }}
+                                    {% if item.tarea.asignado_a %}
+                                        | 👤 Asignado a: {{ item.tarea.asignado_a.username }}
+                                    {% else %}
+                                        | 👤 No asignado
+                                    {% endif %}
+                                </small>
+                            </div>
+
+                            <p class="mb-2">{{ item.tarea.descripcion }}</p>
+
+                            <div class="progress mb-3" style="height: 20px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ item.tarea.progreso }}%;" 
+                                     aria-valuenow="{{ item.tarea.progreso }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ item.tarea.progreso }}%
+                                </div>
+                            </div>
+
+                            <div class="btn-group">
+                                <a href="{% url 'tareas:historial' item.tarea.id %}?return_to=pendientes" 
+                                   class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-clock-history"></i> Historial
+                                </a>
+                                {% if item.puede_editar %}
+                                    <a href="{% url 'tareas:editar' item.tarea.id %}" 
+                                       class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </a>
+                                    <button onclick="completarTarea({{ item.tarea.id }})" 
+                                            class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-lg"></i> Completar
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if tareas_sin_asignar %}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Tareas Sin Asignar en mi Departamento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for item in tareas_sin_asignar %}
+                        <div class="task-item mb-3 p-3 border rounded {% if item.tarea.estado == 'en_proceso' %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0">{{ item.tarea.titulo }}</h5>
+                                <span class="badge {% if item.tarea.estado == 'pendiente' %}bg-warning text-dark{% elif item.tarea.estado == 'en_proceso' %}bg-info text-white{% else %}bg-secondary{% endif %}">
+                                    {{ item.tarea.get_estado_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> Creado por: {{ item.creador }}
+                                </small>
+                            </div>
+
+                            <p class="mb-2">{{ item.tarea.descripcion }}</p>
+
+                            <div class="progress mb-3" style="height: 20px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ item.tarea.progreso }}%;" 
+                                     aria-valuenow="{{ item.tarea.progreso }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ item.tarea.progreso }}%
+                                </div>
+                            </div>
+
+                            <div class="btn-group">
+                                <a href="{% url 'tareas:historial' item.tarea.id %}?return_to=pendientes" 
+                                   class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-clock-history"></i> Historial
+                                </a>
+                                {% if item.puede_editar %}
+                                    <a href="{% url 'tareas:editar' item.tarea.id %}" 
+                                       class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </a>
+                                    <button onclick="completarTarea({{ item.tarea.id }})" 
+                                            class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-lg"></i> Completar
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if tareas_asignadas %}
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-check"></i> Tareas Asignadas a Mí
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for item in tareas_asignadas %}
+                        <div class="task-item mb-3 p-3 border rounded {% if item.tarea.estado == 'en_proceso' %}bg-light{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0">{{ item.tarea.titulo }}</h5>
+                                <span class="badge {% if item.tarea.estado == 'pendiente' %}bg-warning text-dark{% elif item.tarea.estado == 'en_proceso' %}bg-info text-white{% else %}bg-secondary{% endif %}">
+                                    {{ item.tarea.get_estado_display }}
+                                </span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> Creado por: {{ item.creador }}
+                                </small>
+                            </div>
+
+                            <p class="mb-2">{{ item.tarea.descripcion }}</p>
+
+                            <div class="progress mb-3" style="height: 20px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ item.tarea.progreso }}%;" 
+                                     aria-valuenow="{{ item.tarea.progreso }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ item.tarea.progreso }}%
+                                </div>
+                            </div>
+
+                            <div class="btn-group">
+                                <a href="{% url 'tareas:historial' item.tarea.id %}?return_to=pendientes" 
+                                   class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-clock-history"></i> Historial
+                                </a>
+                                {% if item.puede_editar %}
+                                    <a href="{% url 'tareas:editar' item.tarea.id %}" 
+                                       class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </a>
+                                    <button onclick="completarTarea({{ item.tarea.id }})" 
+                                            class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-lg"></i> Completar
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+
+    {% if not tareas_propias and not tareas_sin_asignar and not tareas_asignadas and not tareas_propias_admin %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No hay tareas pendientes.
+        </div>
+    {% endif %}
 </div>
+
+<!-- Script para completar tareas -->
+<script>
+function completarTarea(tareaId) {
+    if (confirm('¿Estás seguro de que deseas marcar esta tarea como completada?')) {
+        fetch(`{% url 'tareas:completar' 0 %}`.replace('0', tareaId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al completar la tarea: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al completar la tarea');
+        });
+    }
+}
+</script>
 {% endblock %}

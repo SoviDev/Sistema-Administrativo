@@ -35,14 +35,14 @@
                 <!-- 📌 Contenedor flexible para botones -->
                 <div class="col-12 mt-2 d-flex flex-wrap gap-2 justify-content-start">
                     {% if item.tarea.id %}
-                        <a href="{% url 'tareas:tareas_historial' item.tarea.id %}?return_to={{ request.resolver_match.url_name }}" 
+                        <a href="{% url 'tareas:historial' item.tarea.id %}?return_to={{ request.resolver_match.url_name }}" 
                            class="btn btn-sm btn-secondary">
                             <i class="bi bi-clock-history"></i> Historial
                         </a>
                     {% endif %}
 
                     {% if item.puede_editar %}
-                        <a href="{% url 'tareas:tarea_editar' item.tarea.id %}" class="btn btn-sm btn-warning">
+                        <a href="{% url 'tareas:editar' item.tarea.id %}" class="btn btn-sm btn-warning">
                             <i class="bi bi-pencil"></i> Editar
                         </a>
 

@@ -38,44 +38,57 @@
 
                 <!-- 🔹 Usuario Asignado -->
                 <div class="mb-3">
-                    <label for="id_asignado_a" class="form-label"><i class="bi bi-person-fill"></i> Asignar a</label>
-                    <select id="id_asignado_a" name="asignado_a" class="form-select" disabled>
-                        <option value="" selected>-- Primero selecciona un Departamento --</option>
-                    </select>
+                    <label for="id_asignado_a" class="form-label"><i class="bi bi-person"></i> Asignado a</label>
+                    {{ form.asignado_a }}
                 </div>
 
-                <!-- 🔹 Botones -->
-                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Guardar</button>
-                <a href="{% url 'tareas:tareas_pendientes' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Cancelar</a>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-lg"></i> Crear Tarea
+                </button>
+                <a href="{% url 'tareas:pendientes' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancelar
+                </a>
             </form>
         </div>
     </div>
 </div>
 
-<!-- 🔹 JavaScript para manejar la lógica del formulario -->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const departamentoSelect = document.getElementById("id_departamento");
     const usuarioSelect = document.getElementById("id_asignado_a");
 
     function actualizarUsuarios(deptoId) {
-        fetch(`/api/usuarios_por_departamento/${deptoId}/`)
-            .then(response => response.json())
-            .then(data => {
-                usuarioSelect.innerHTML = '<option value="">-- Seleccionar Usuario --</option>';
-                data.usuarios.forEach(user => {
-                    let option = document.createElement("option");
-                    option.value = user.id;
-                    option.textContent = user.username;
-                    usuarioSelect.appendChild(option);
-                });
-                usuarioSelect.disabled = false;
-            })
-            .catch(error => {
-                console.error("Error al obtener usuarios:", error);
-                usuarioSelect.innerHTML = '<option value="">-- No disponible --</option>';
-                usuarioSelect.disabled = true;
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch(`{% url 'tareas:usuarios_departamento' 0 %}`.replace('0', deptoId), {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al obtener usuarios');
+            }
+            return response.json();
+        })
+        .then(usuarios => {
+            usuarioSelect.innerHTML = '<option value="">-- Seleccionar Usuario --</option>';
+            usuarios.forEach(usuario => {
+                const option = document.createElement('option');
+                option.value = usuario.id;
+                option.textContent = usuario.username;
+                usuarioSelect.appendChild(option);
             });
+            usuarioSelect.disabled = false;
+        })
+        .catch(error => {
+            console.error("Error al obtener usuarios:", error);
+            usuarioSelect.innerHTML = '<option value="">-- No disponible --</option>';
+            usuarioSelect.disabled = true;
+        });
     }
 
     departamentoSelect.addEventListener("change", function () {

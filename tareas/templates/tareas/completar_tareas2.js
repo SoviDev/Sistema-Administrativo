@@ -72,5 +72,32 @@
     <!-- Script de completar tareas -->
     <script src="{% static 'js/completar_tareas.js' %}"></script>
 
+    <!-- Función para completar una tarea -->
+    <script>
+    function completarTarea(tareaId) {
+        if (confirm('¿Estás seguro de que deseas marcar esta tarea como completada?')) {
+            fetch(`/tareas/completar/${tareaId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Error al completar la tarea: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al completar la tarea');
+            });
+        }
+    }
+    </script>
+
 </body>
 </html>

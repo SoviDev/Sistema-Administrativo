@@ -8,6 +8,15 @@ from usuarios.models import CustomUser, Departamento
 User = get_user_model()
 
 class CustomUserCreationForm(UserCreationForm):
+    """
+    Formulario personalizado para la creación de usuarios.
+    Extiende UserCreationForm para incluir campos adicionales.
+    
+    Attributes:
+        email (EmailField): Campo para el correo electrónico del usuario.
+        telefono (CharField): Campo para el número de teléfono del usuario.
+        departamento (ModelChoiceField): Campo para seleccionar el departamento del usuario.
+    """
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
     telefono = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     departamento = forms.ModelChoiceField(
@@ -17,7 +26,7 @@ class CustomUserCreationForm(UserCreationForm):
     )
 
     class Meta:
-        model = CustomUser  # Usa el modelo extendido
+        model = CustomUser
         fields = ['username', 'email', 'password1', 'password2', 'telefono', 'departamento']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
@@ -27,6 +36,17 @@ class CustomUserCreationForm(UserCreationForm):
         }
 
 class TareaForm(forms.ModelForm):
+    """
+    Formulario para crear nuevas tareas.
+    
+    Attributes:
+        titulo (CharField): Título de la tarea.
+        descripcion (TextField): Descripción detallada de la tarea.
+        departamento (ModelChoiceField): Departamento asociado a la tarea.
+        asignado_a (ModelChoiceField): Usuario asignado a la tarea.
+        estado (ChoiceField): Estado actual de la tarea.
+        progreso (IntegerField): Porcentaje de progreso de la tarea.
+    """
     class Meta:
         model = Tarea
         fields = ['titulo', 'descripcion', 'departamento', 'asignado_a', 'estado', 'progreso']
@@ -40,6 +60,13 @@ class TareaForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        """
+        Inicializa el formulario y configura los campos dinámicamente.
+        
+        Args:
+            *args: Argumentos posicionales.
+            **kwargs: Argumentos nombrados, incluyendo 'usuario' para validación de permisos.
+        """
         usuario = kwargs.pop('usuario', None)
         super().__init__(*args, **kwargs)
 
@@ -61,6 +88,15 @@ class TareaForm(forms.ModelForm):
             self.fields['descripcion'].widget.attrs['readonly'] = True
 
     def clean(self):
+        """
+        Valida que el usuario asignado pertenezca al departamento seleccionado.
+        
+        Returns:
+            dict: Datos limpios del formulario.
+            
+        Raises:
+            ValidationError: Si el usuario asignado no pertenece al departamento.
+        """
         cleaned_data = super().clean()
         departamento = cleaned_data.get("departamento")
         asignado_a = cleaned_data.get("asignado_a")
@@ -71,6 +107,16 @@ class TareaForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, usuario=None, commit=True):
+        """
+        Guarda la tarea y registra el usuario que realizó la última modificación.
+        
+        Args:
+            usuario (User, optional): Usuario que está guardando la tarea.
+            commit (bool, optional): Si se debe guardar en la base de datos.
+            
+        Returns:
+            Tarea: La tarea guardada.
+        """
         tarea = super().save(commit=False)
         if usuario:
             tarea.ultima_modificacion_por = usuario  
@@ -80,6 +126,18 @@ class TareaForm(forms.ModelForm):
 
 
 class TareaEditForm(forms.ModelForm):
+    """
+    Formulario para editar tareas existentes.
+    Similar a TareaForm pero con campos específicos para edición.
+    
+    Attributes:
+        titulo (CharField): Título de la tarea.
+        descripcion (TextField): Descripción detallada de la tarea.
+        departamento (ModelChoiceField): Departamento asociado a la tarea.
+        asignado_a (ModelChoiceField): Usuario asignado a la tarea.
+        estado (ChoiceField): Estado actual de la tarea.
+        progreso (IntegerField): Porcentaje de progreso de la tarea.
+    """
     class Meta:
         model = Tarea
         fields = ['titulo', 'descripcion', 'departamento', 'asignado_a', 'estado', 'progreso']
@@ -93,6 +151,14 @@ class TareaEditForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        """
+        Inicializa el formulario y configura los campos dinámicamente.
+        Filtra los usuarios asignables según el departamento seleccionado.
+        
+        Args:
+            *args: Argumentos posicionales.
+            **kwargs: Argumentos nombrados.
+        """
         super().__init__(*args, **kwargs)
 
         # 🔹 Cargar los departamentos
@@ -111,10 +177,11 @@ class TareaEditForm(forms.ModelForm):
             self.fields['asignado_a'].queryset = CustomUser.objects.none()
 
 
-
-
-
 class RegistroAdminForm(CustomUserCreationForm):
+    """
+    Formulario para el registro de usuarios administradores.
+    Extiende CustomUserCreationForm para incluir campos adicionales.
+    """
     class Meta(CustomUserCreationForm.Meta):
         model = CustomUser
         fields = CustomUserCreationForm.Meta.fields + ['departamento', 'telefono']
