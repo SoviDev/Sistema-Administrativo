@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
-from usuarios.models import Departamento
+from usuarios.models import Departamento, CustomUser
 
 User = get_user_model()
 
@@ -126,3 +126,20 @@ def registrar_cambios(sender, instance, created, **kwargs):
                 usuario=instance.ultima_modificacion_por,
                 accion="; ".join(cambios)
             )
+
+class Observacion(models.Model):
+    """
+    Modelo para manejar las observaciones de una tarea.
+    """
+    tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, related_name='observaciones')
+    usuario = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
+    contenido = models.TextField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Observación'
+        verbose_name_plural = 'Observaciones'
+
+    def __str__(self):
+        return f'Observación de {self.usuario.username} en {self.tarea.titulo}'

@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-clock-history"></i> Historial de la Tarea: {{ tarea.titulo }}
+            </h5>
+            <a href="{{ return_to_url }}" class="btn btn-light btn-sm">
+                <i class="bi bi-arrow-left"></i> Volver
+                {% if return_to == 'historico' %}
+                    al Histórico
+                {% else %}
+                    a Tareas
+                {% endif %}
+            </a>
+        </div>
+        
+        <div class="card-body">
+            <!-- Información de la tarea -->
+            <div class="mb-4">
+                <h6 class="text-muted">Detalles de la Tarea</h6>
+                <div class="border rounded p-3">
+                    <p class="mb-2">
+                        <strong>Estado actual:</strong> 
+                        <span class="badge {% if tarea.estado == 'completada' %}bg-success{% elif tarea.estado == 'cancelada' %}bg-danger{% elif tarea.estado == 'en_proceso' %}bg-info{% else %}bg-warning{% endif %}">
+                            {{ tarea.get_estado_display }}
+                        </span>
+                    </p>
+                    <p class="mb-2"><strong>Creada por:</strong> {{ tarea.creador.username }}</p>
+                    <p class="mb-2"><strong>Fecha de creación:</strong> {{ tarea.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                    {% if tarea.asignado_a %}
+                        <p class="mb-2"><strong>Asignada a:</strong> {{ tarea.asignado_a.username }}</p>
+                    {% endif %}
+                    {% if tarea.departamento %}
+                        <p class="mb-0"><strong>Departamento:</strong> {{ tarea.departamento.nombre }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Línea de tiempo de eventos -->
+            <h6 class="text-muted mb-3">Línea de Tiempo</h6>
+            <div class="timeline">
+                {% for evento in eventos %}
+                    <div class="timeline-item">
+                        <div class="timeline-marker {% if evento.tipo == 'observacion' %}bg-info{% else %}bg-primary{% endif %}"></div>
+                        <div class="timeline-content border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge {% if evento.tipo == 'observacion' %}bg-info{% else %}bg-primary{% endif %}">
+                                    {% if evento.tipo == 'observacion' %}
+                                        <i class="bi bi-chat-dots"></i> Observación
+                                    {% else %}
+                                        <i class="bi bi-pencil"></i> Cambio
+                                    {% endif %}
+                                </span>
+                                <small class="text-muted">
+                                    {{ evento.fecha|date:"d/m/Y H:i" }}
+                                </small>
+                            </div>
+                            <div class="mb-2">
+                                <strong>{{ evento.usuario.username }}</strong>
+                            </div>
+                            <p class="mb-0">{{ evento.contenido }}</p>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No hay eventos registrados para esta tarea.
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    margin-top: 12px;
+}
+
+.timeline-content {
+    margin-left: 10px;
+    background-color: #fff;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background-color: #dee2e6;
+}
+</style>
+{% endblock %} 

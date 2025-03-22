@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Tarea
+from .models import Tarea, Observacion
 from django.contrib.auth import get_user_model
 from usuarios.models import CustomUser, Departamento
 
@@ -185,3 +185,20 @@ class RegistroAdminForm(CustomUserCreationForm):
     class Meta(CustomUserCreationForm.Meta):
         model = CustomUser
         fields = CustomUserCreationForm.Meta.fields + ['departamento', 'telefono']
+
+class ObservacionForm(forms.ModelForm):
+    """
+    Formulario para crear observaciones en una tarea.
+    """
+    contenido = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': '3',
+            'placeholder': 'Escribe tu observación aquí...'
+        }),
+        label='Observación'
+    )
+
+    class Meta:
+        model = Observacion
+        fields = ['contenido']

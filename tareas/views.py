@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model, login
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .forms import CustomUserCreationForm, TareaForm, TareaEditForm, RegistroAdminForm, CustomUser
-from .models import HistorialTarea, Departamento, Tarea
+from .forms import CustomUserCreationForm, TareaForm, TareaEditForm, RegistroAdminForm, CustomUser, ObservacionForm
+from .models import HistorialTarea, Departamento, Tarea, Observacion
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from datetime import timedelta, datetime
@@ -10,7 +10,7 @@ from django.utils.timezone import now
 from django.db.models import Q
 from django.contrib import messages
 from django import template
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.urls import reverse
 from usuarios.models import CustomUser
 import unicodedata
@@ -298,6 +298,9 @@ def tarea_editar(request, tarea_id):
     if not tarea.puede_editar(request.user):
         raise PermissionDenied("No tienes permisos para editar esta tarea.")
 
+    observacion_form = ObservacionForm()
+    observaciones = tarea.observaciones.all()
+
     if request.method == 'POST':
         form = TareaEditForm(request.POST, instance=tarea)
 
@@ -325,7 +328,9 @@ def tarea_editar(request, tarea_id):
 
     return render(request, 'tareas/tarea_editar.html', {
         'form': form,
-        'tarea': tarea
+        'tarea': tarea,
+        'observacion_form': observacion_form,
+        'observaciones': observaciones
     })
 
 @login_required
@@ -539,3 +544,83 @@ def editar_tarea(request, pk):
     else:
         form = TareaForm(instance=tarea)
     return render(request, "tareas/form_tarea.html", {"form": form})
+
+@login_required
+def agregar_observacion(request, tarea_id):
+    """
+    Vista para agregar una observación a una tarea.
+    """
+    tarea = get_object_or_404(Tarea, id=tarea_id)
+    
+    if request.method == 'POST':
+        form = ObservacionForm(request.POST)
+        if form.is_valid():
+            observacion = form.save(commit=False)
+            observacion.tarea = tarea
+            observacion.usuario = request.user
+            observacion.save()
+            
+            # Si la solicitud es AJAX, devolver respuesta JSON
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'observacion': {
+                        'contenido': observacion.contenido,
+                        'usuario': observacion.usuario.username,
+                        'fecha': observacion.fecha_creacion.strftime("%d/%m/%Y %H:%M")
+                    }
+                })
+            
+            # Si no es AJAX, redirigir a la página de la tarea
+            return redirect('tareas:editar', tarea_id=tarea.id)
+    
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@login_required
+def historial_tarea(request, tarea_id):
+    """
+    Vista que muestra el historial de cambios y observaciones de una tarea.
+    """
+    tarea = get_object_or_404(Tarea, id=tarea_id)
+    return_to = request.GET.get('return_to', '')
+
+    # Obtener el historial de cambios y observaciones ordenados por fecha
+    historial_cambios = tarea.historial.all().select_related('usuario').order_by('-fecha_hora')
+    observaciones = tarea.observaciones.all().select_related('usuario').order_by('-fecha_creacion')
+
+    # Combinar historial y observaciones en una sola lista ordenada por fecha
+    eventos = []
+    
+    # Agregar historial de cambios
+    for cambio in historial_cambios:
+        eventos.append({
+            'tipo': 'cambio',
+            'fecha': cambio.fecha_hora,
+            'usuario': cambio.usuario,
+            'contenido': cambio.accion,
+        })
+    
+    # Agregar observaciones
+    for obs in observaciones:
+        eventos.append({
+            'tipo': 'observacion',
+            'fecha': obs.fecha_creacion,
+            'usuario': obs.usuario,
+            'contenido': obs.contenido,
+        })
+    
+    # Ordenar todos los eventos por fecha, más recientes primero
+    eventos_ordenados = sorted(eventos, key=lambda x: x['fecha'], reverse=True)
+
+    # Determinar la URL de retorno
+    if return_to == "historico":
+        return_to_url = reverse("tareas:historico")
+    else:
+        return_to_url = reverse("tareas:pendientes")
+
+    return render(request, 'tareas/historial_tarea.html', {
+        'tarea': tarea,
+        'eventos': eventos_ordenados,
+        'return_to': return_to,
+        'return_to_url': return_to_url
+    })
