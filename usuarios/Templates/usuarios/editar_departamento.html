@@ -2,11 +2,29 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Editar Departamento</h2>
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-    </form>
+    <div class="card shadow-lg">
+        <div class="card-header bg-dark text-white">
+            <h2 class="mb-0"><i class="bi bi-building"></i> Editar Departamento</h2>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="nombre" class="form-label">Nombre del Departamento</label>
+                    <input type="text" name="nombre" id="nombre" class="form-control" value="{{ object.nombre }}" required>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                    <a href="{% url 'usuarios:lista_departamentos' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

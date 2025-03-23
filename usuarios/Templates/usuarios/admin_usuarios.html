@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-people"></i> Administración de Usuarios
+            </h5>
+            <a href="{% url 'usuarios:registro_admin' %}" class="btn btn-light btn-sm">
+                <i class="bi bi-person-plus"></i> Nuevo Usuario
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Departamento</th>
+                            <th>Teléfono</th>
+                            <th>Último Ingreso</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios %}
+                        <tr>
+                            <td>{{ usuario.username }}</td>
+                            <td>{{ usuario.departamento.nombre|default:"No asignado" }}</td>
+                            <td>{{ usuario.telefono|default:"No registrado" }}</td>
+                            <td>
+                                {% if usuario.ultimo_ingreso %}
+                                    {{ usuario.ultimo_ingreso|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    Nunca ha ingresado
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if usuario.is_active %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'usuarios:editar_usuario' usuario.id %}" 
+                                       class="btn btn-sm btn-outline-primary" 
+                                       title="Editar usuario">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    {% if usuario.is_active %}
+                                    <form method="post" action="{% url 'usuarios:desactivar_usuario' usuario.id %}" 
+                                          class="d-inline" 
+                                          onsubmit="return confirm('¿Estás seguro de que deseas desactivar al usuario {{ usuario.username }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-outline-danger" 
+                                                title="Desactivar usuario">
+                                            <i class="bi bi-person-x"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <form method="post" action="{% url 'usuarios:activar_usuario' usuario.id %}" 
+                                          class="d-inline" 
+                                          onsubmit="return confirm('¿Estás seguro de que deseas activar al usuario {{ usuario.username }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-outline-success" 
+                                                title="Activar usuario">
+                                            <i class="bi bi-person-check"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="post" action="{% url 'usuarios:restablecer_contrasena' usuario.id %}" 
+                                          class="d-inline" 
+                                          onsubmit="return confirm('¿Estás seguro de que deseas restablecer la contraseña del usuario {{ usuario.username }}?');">
+                                        {% csrf_token %}
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-outline-secondary" 
+                                                title="Restablecer contraseña">
+                                            <i class="bi bi-key"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No hay usuarios registrados</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    {% for message in messages %}
+    <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header {% if message.tags %}bg-{{ message.tags }}{% endif %} text-white">
+            <strong class="me-auto">Notificación</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            {{ message }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+    var toastList = toastElList.map(function(toastEl) {
+        var toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 3000
+        });
+        return toast;
+    });
+});
+</script>
+{% endblock %} 

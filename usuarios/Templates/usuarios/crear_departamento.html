@@ -1,15 +1,30 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2><i class="bi bi-plus-circle"></i> Nuevo Departamento</h2>
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label class="form-label">Nombre del Departamento</label>
-            {{ form.nombre }}
+    <div class="card shadow-lg">
+        <div class="card-header bg-dark text-white">
+            <h2 class="mb-0"><i class="bi bi-building-add"></i> Crear Departamento</h2>
         </div>
-        <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Guardar</button>
-        <a href="{% url 'usuarios:lista_departamentos' %}" class="btn btn-secondary">Cancelar</a>
-    </form>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="nombre" class="form-label">Nombre del Departamento</label>
+                    <input type="text" name="nombre" id="nombre" class="form-control" required>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Crear Departamento
+                    </button>
+                    <a href="{% url 'usuarios:lista_departamentos' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

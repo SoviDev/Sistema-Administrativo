@@ -41,6 +41,33 @@
                         </button>
                     </div>
                 </div>
+
+                {% if es_admin %}
+                <!-- Filtros adicionales para administradores -->
+                <div class="col-md-3">
+                    <label for="departamento" class="form-label">Departamento</label>
+                    <select name="departamento" id="departamento" class="form-select">
+                        <option value="">Todos los departamentos</option>
+                        {% for depto in departamentos %}
+                            <option value="{{ depto.id }}" {% if departamento_filtro == depto.id|stringformat:"s" %}selected{% endif %}>
+                                {{ depto.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="usuario" class="form-label">Usuario</label>
+                    <select name="usuario" id="usuario" class="form-select">
+                        <option value="">Todos los usuarios</option>
+                        {% for user in usuarios %}
+                            <option value="{{ user.id }}" {% if usuario_filtro == user.id|stringformat:"s" %}selected{% endif %}>
+                                {{ user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
             </form>
         </div>
     </div>

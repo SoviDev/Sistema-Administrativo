@@ -422,6 +422,10 @@ def css_estado(value):
 def tareas_historico(request):
     """
     Vista que muestra el historial de tareas completadas y canceladas.
+    Para usuarios normales muestra:
+    - Tareas que han creado
+    - Tareas que les fueron asignadas
+    Para administradores muestra todas las tareas.
     """
     usuario = request.user
     hoy = now().date()
@@ -430,6 +434,8 @@ def tareas_historico(request):
     filtro = request.GET.get('filtro', '30')
     fecha_inicio = request.GET.get('fecha_inicio', '')
     fecha_fin = request.GET.get('fecha_fin', '')
+    departamento_filtro = request.GET.get("departamento", "").strip()
+    usuario_filtro = request.GET.get("usuario", "").strip()
 
     if filtro == "8":
         rango_inicio = hoy - timedelta(days=8)
@@ -455,6 +461,22 @@ def tareas_historico(request):
         estado__in=["completada", "cancelada"]
     )
 
+    # Filtrar por usuario si no es superusuario
+    if not usuario.is_superuser:
+        tareas_historicas = tareas_historicas.filter(
+            Q(creador=usuario) |  # Tareas creadas por el usuario
+            Q(asignado_a=usuario)  # Tareas asignadas al usuario
+        )
+    else:
+        # Filtros adicionales para administradores
+        if departamento_filtro:
+            tareas_historicas = tareas_historicas.filter(departamento_id=departamento_filtro)
+        if usuario_filtro:
+            tareas_historicas = tareas_historicas.filter(
+                Q(creador_id=usuario_filtro) |
+                Q(asignado_a_id=usuario_filtro)
+            )
+
     if rango_inicio:
         tareas_historicas = tareas_historicas.filter(
             Q(fecha_completada__gte=rango_inicio) |
@@ -473,12 +495,15 @@ def tareas_historico(request):
             Q(descripcion__icontains=query)
         )
 
-    # Filtrar por usuario si no es superusuario
-    if not usuario.is_superuser:
-        tareas_historicas = tareas_historicas.filter(creador_id=usuario.id)
-
     # Ordenar por la fecha más reciente (ya sea completada o actualizada)
     tareas_historicas = tareas_historicas.order_by("-fecha_completada", "-fecha_actualizacion")
+
+    # Obtener listas de departamentos y usuarios para los filtros (solo para administradores)
+    departamentos = None
+    usuarios = None
+    if usuario.is_superuser:
+        departamentos = Departamento.objects.all()
+        usuarios = CustomUser.objects.all().order_by('username')
 
     return render(request, 'tareas/tareas_historico.html', {
         'tareas': tareas_historicas,
@@ -487,6 +512,10 @@ def tareas_historico(request):
         'fecha_inicio': fecha_inicio,
         'fecha_fin': fecha_fin,
         'query': query,
+        'departamentos': departamentos,
+        'usuarios': usuarios,
+        'departamento_filtro': departamento_filtro,
+        'usuario_filtro': usuario_filtro
     })
 
 @login_required
@@ -579,48 +608,67 @@ def agregar_observacion(request, tarea_id):
 @login_required
 def historial_tarea(request, tarea_id):
     """
-    Vista que muestra el historial de cambios y observaciones de una tarea.
+    Vista que muestra el historial de cambios, observaciones y completados de una tarea.
     """
     tarea = get_object_or_404(Tarea, id=tarea_id)
+    
+    # Verificar que el usuario tenga permiso para ver esta tarea
+    if not request.user.is_superuser and request.user != tarea.creador and request.user != tarea.asignado_a:
+        messages.error(request, "No tienes permiso para ver el historial de esta tarea.")
+        return redirect('tareas:pendientes')
+    
     return_to = request.GET.get('return_to', '')
 
     # Obtener el historial de cambios y observaciones ordenados por fecha
     historial_cambios = tarea.historial.all().select_related('usuario').order_by('-fecha_hora')
     observaciones = tarea.observaciones.all().select_related('usuario').order_by('-fecha_creacion')
-
-    # Combinar historial y observaciones en una sola lista ordenada por fecha
+    
+    # Crear una lista combinada de eventos
     eventos = []
     
-    # Agregar historial de cambios
+    # Agregar cambios al historial
     for cambio in historial_cambios:
         eventos.append({
             'tipo': 'cambio',
             'fecha': cambio.fecha_hora,
             'usuario': cambio.usuario,
             'contenido': cambio.accion,
+            'css_class': 'bg-primary bg-opacity-10'
         })
     
-    # Agregar observaciones
+    # Agregar observaciones al historial
     for obs in observaciones:
         eventos.append({
             'tipo': 'observacion',
             'fecha': obs.fecha_creacion,
             'usuario': obs.usuario,
             'contenido': obs.contenido,
+            'css_class': 'bg-info bg-opacity-10'
         })
     
-    # Ordenar todos los eventos por fecha, más recientes primero
-    eventos_ordenados = sorted(eventos, key=lambda x: x['fecha'], reverse=True)
+    # Agregar eventos de completado si la tarea está completada
+    if tarea.estado == 'Completada':
+        eventos.append({
+            'tipo': 'completado',
+            'fecha': tarea.fecha_completada,
+            'usuario': tarea.ultima_modificacion_por,
+            'contenido': f'Tarea marcada como completada por {tarea.ultima_modificacion_por.username}',
+            'css_class': 'bg-success bg-opacity-10'
+        })
+
+    # Ordenar todos los eventos por fecha, del más reciente al más antiguo
+    eventos.sort(key=lambda x: x['fecha'], reverse=True)
 
     # Determinar la URL de retorno
-    if return_to == "historico":
-        return_to_url = reverse("tareas:historico")
+    if return_to == 'historico':
+        return_to_url = reverse('tareas:historico')
     else:
-        return_to_url = reverse("tareas:pendientes")
+        return_to_url = reverse('tareas:pendientes')
 
-    return render(request, 'tareas/historial_tarea.html', {
+    context = {
         'tarea': tarea,
-        'eventos': eventos_ordenados,
-        'return_to': return_to,
+        'eventos': eventos,
         'return_to_url': return_to_url
-    })
+    }
+    
+    return render(request, 'tareas/historial_tarea.html', context)

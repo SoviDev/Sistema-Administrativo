@@ -12,17 +12,17 @@
 
                 <div class="mb-3">
                     <label for="username" class="form-label">Nombre de Usuario</label>
-                    <input type="text" name="username" id="username" class="form-control" value="{{ usuario.username }}">
+                    <input type="text" name="username" id="username" class="form-control" value="{{ object.username }}">
                 </div>
 
                 <div class="mb-3">
                     <label for="email" class="form-label">Correo Electrónico</label>
-                    <input type="email" name="email" id="email" class="form-control" value="{{ usuario.email }}">
+                    <input type="email" name="email" id="email" class="form-control" value="{{ object.email }}">
                 </div>
 
                 <div class="mb-3">
                     <label for="telefono" class="form-label">Teléfono</label>
-                    <input type="text" name="telefono" id="telefono" class="form-control" value="{{ usuario.telefono }}">
+                    <input type="text" name="telefono" id="telefono" class="form-control" value="{{ object.telefono }}">
                 </div>
 
                 <div class="mb-3">
@@ -30,7 +30,7 @@
                     <select name="departamento" id="departamento" class="form-control">
                         <option value="">-- Seleccionar --</option>
                         {% for depto in departamentos %}
-                            <option value="{{ depto.id }}" {% if usuario.departamento.id == depto.id %}selected{% endif %}>
+                            <option value="{{ depto.id }}" {% if object.departamento.id == depto.id %}selected{% endif %}>
                                 {{ depto.nombre }}
                             </option>
                         {% endfor %}
@@ -39,7 +39,7 @@
 
                 {% if request.user.is_superuser %}
                 <div class="mb-3 form-check">
-                    <input type="checkbox" name="es_admin" id="es_admin" class="form-check-input" {% if usuario.is_superuser %}checked{% endif %}>
+                    <input type="checkbox" name="es_admin" id="es_admin" class="form-check-input" {% if object.is_superuser %}checked{% endif %}>
                     <label class="form-check-label" for="es_admin">Administrador (Superusuario)</label>
                 </div>
                 {% endif %}
@@ -50,9 +50,12 @@
             </form>
 
             {% if request.user.is_superuser %}
-            <a href="{% url 'usuarios:restablecer_contrasena' usuario.id %}" class="btn btn-warning w-100 mt-2">
-                <i class="bi bi-key"></i> Restablecer Contraseña
-            </a>
+            <form action="{% url 'usuarios:restablecer_contrasena' object.id %}" method="post" class="mt-2">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning w-100">
+                    <i class="bi bi-key"></i> Restablecer Contraseña
+                </button>
+            </form>
             {% endif %}
         </div>
     </div>
