@@ -4,7 +4,7 @@ import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchUser, createUser, updateUser, fetchDepartments } from '../store/slices/userSlice';
 import { RootState } from '../store/store';
-import { Department, User, UserUpdateData } from '../types/auth';
+import { Department, User, UserUpdateData, PRIVILEGES } from '../types/auth';
 import {
   Box,
   Button,
@@ -15,6 +15,10 @@ import {
   Typography,
   Autocomplete,
   Chip,
+  FormControlLabel,
+  Switch,
+  Divider,
+  FormGroup,
 } from '@mui/material';
 
 interface FormData {
@@ -23,9 +27,11 @@ interface FormData {
   telefono: string | null;
   departamentos_acceso: number[];
   is_active: boolean;
-  is_superuser: boolean;
   es_admin: boolean;
   password: string;
+  privilegios: {
+    [key in keyof typeof PRIVILEGES]: boolean;
+  };
 }
 
 const initialFormData: FormData = {
@@ -34,9 +40,17 @@ const initialFormData: FormData = {
   telefono: null,
   departamentos_acceso: [],
   is_active: true,
-  is_superuser: false,
   es_admin: false,
-  password: ''
+  password: '',
+  privilegios: {
+    TAREAS_VER: false,
+    TAREAS_CREAR: false,
+    TAREAS_EDITAR: false,
+    BANDEJA_VER: false,
+    BANDEJA_GESTIONAR: false,
+    USUARIOS_ADMIN: false,
+    DEPARTAMENTOS_ADMIN: false
+  }
 };
 
 const UserForm: React.FC = () => {
@@ -51,9 +65,17 @@ const UserForm: React.FC = () => {
     telefono: currentUser.telefono,
     departamentos_acceso: currentUser.departamentos_acceso?.map(d => d.id) || [],
     is_active: currentUser.is_active,
-    is_superuser: currentUser.is_superuser,
     es_admin: currentUser.es_admin,
-    password: ''
+    password: '',
+    privilegios: {
+      TAREAS_VER: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_VER),
+      TAREAS_CREAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_CREAR),
+      TAREAS_EDITAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_EDITAR),
+      BANDEJA_VER: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.BANDEJA_VER),
+      BANDEJA_GESTIONAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.BANDEJA_GESTIONAR),
+      USUARIOS_ADMIN: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.USUARIOS_ADMIN),
+      DEPARTAMENTOS_ADMIN: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.DEPARTAMENTOS_ADMIN)
+    }
   } : initialFormData);
 
   useEffect(() => {
@@ -72,9 +94,17 @@ const UserForm: React.FC = () => {
         telefono: currentUser.telefono,
         departamentos_acceso: currentUser.departamentos_acceso?.map(d => d.id) || [],
         is_active: currentUser.is_active,
-        is_superuser: currentUser.is_superuser,
         es_admin: currentUser.es_admin,
-        password: ''
+        password: '',
+        privilegios: {
+          TAREAS_VER: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_VER),
+          TAREAS_CREAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_CREAR),
+          TAREAS_EDITAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_EDITAR),
+          BANDEJA_VER: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.BANDEJA_VER),
+          BANDEJA_GESTIONAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.BANDEJA_GESTIONAR),
+          USUARIOS_ADMIN: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.USUARIOS_ADMIN),
+          DEPARTAMENTOS_ADMIN: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.DEPARTAMENTOS_ADMIN)
+        }
       });
     }
   }, [currentUser]);
@@ -94,16 +124,25 @@ const UserForm: React.FC = () => {
     }));
   };
 
+  const handlePrivilegioChange = (privilegio: keyof typeof PRIVILEGES) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      privilegios: {
+        ...prev.privilegios,
+        [privilegio]: e.target.checked
+      }
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userData: Omit<FormData, 'password'> & { password?: string } = {
+      const userData: Omit<FormData, 'password' | 'privilegios'> & { password?: string } = {
         username: formData.username,
         email: formData.email,
         telefono: formData.telefono,
         departamentos_acceso: formData.departamentos_acceso,
         is_active: formData.is_active,
-        is_superuser: formData.is_superuser,
         es_admin: formData.es_admin,
         ...(formData.password ? { password: formData.password } : {})
       };
@@ -119,6 +158,16 @@ const UserForm: React.FC = () => {
     }
   };
 
+  const privilegeLabels: { [key in keyof typeof PRIVILEGES]: string } = {
+    TAREAS_VER: 'Ver Tareas',
+    TAREAS_CREAR: 'Crear Tareas',
+    TAREAS_EDITAR: 'Editar Tareas',
+    BANDEJA_VER: 'Ver Bandeja',
+    BANDEJA_GESTIONAR: 'Gestionar Bandeja',
+    USUARIOS_ADMIN: 'Administrar Usuarios',
+    DEPARTAMENTOS_ADMIN: 'Administrar Departamentos'
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -130,9 +179,20 @@ const UserForm: React.FC = () => {
   return (
     <Box p={3}>
       <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          {userId ? 'Editar Usuario' : 'Nuevo Usuario'}
-        </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Typography variant="h5">
+            {userId ? 'Editar Usuario' : 'Nuevo Usuario'}
+          </Typography>
+          {userId && (
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => navigate(`/usuarios/${userId}/privileges`)}
+            >
+              Gestionar Privilegios por Departamento
+            </Button>
+          )}
+        </Box>
         {error && (
           <Typography color="error" gutterBottom>
             {error}
@@ -161,6 +221,20 @@ const UserForm: React.FC = () => {
                 required
               />
             </Grid>
+            {!userId && (
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Contraseña"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleTextFieldChange}
+                  required={!userId}
+                  helperText={!userId ? "La contraseña es requerida para nuevos usuarios" : ""}
+                />
+              </Grid>
+            )}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -195,6 +269,61 @@ const UserForm: React.FC = () => {
                 }
                 sx={{ width: '100%' }}
               />
+            </Grid>
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Estado y Privilegios Generales
+              </Typography>
+              <Box display="flex" flexDirection="column" gap={2}>
+                <FormGroup>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.is_active}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          is_active: e.target.checked
+                        }))}
+                        name="is_active"
+                      />
+                    }
+                    label="Usuario Activo"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.es_admin}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          es_admin: e.target.checked
+                        }))}
+                        name="es_admin"
+                      />
+                    }
+                    label="Administrador"
+                  />
+                </FormGroup>
+                <Divider />
+                <Typography variant="subtitle1" gutterBottom>
+                  Privilegios Básicos
+                </Typography>
+                <FormGroup>
+                  {(Object.keys(PRIVILEGES) as Array<keyof typeof PRIVILEGES>).map((privilegio) => (
+                    <FormControlLabel
+                      key={privilegio}
+                      control={
+                        <Switch
+                          checked={formData.privilegios[privilegio]}
+                          onChange={handlePrivilegioChange(privilegio)}
+                          name={privilegio}
+                        />
+                      }
+                      label={privilegeLabels[privilegio]}
+                    />
+                  ))}
+                </FormGroup>
+              </Box>
             </Grid>
             <Grid item xs={12}>
               <Box display="flex" gap={2}>

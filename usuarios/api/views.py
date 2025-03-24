@@ -369,4 +369,19 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.es_admin or user.is_superuser:
             return Departamento.objects.all().order_by('nombre')
-        return user.departamentos_acceso.all().order_by('nombre') 
+        return user.departamentos_acceso.all().order_by('nombre')
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """
+        Activar/desactivar departamento
+        """
+        departamento = self.get_object()
+        departamento.is_active = not departamento.is_active
+        departamento.save()
+        serializer = self.get_serializer(departamento)
+        return Response({
+            'status': 'success',
+            'message': f'Departamento {"activado" if departamento.is_active else "desactivado"} correctamente',
+            'data': serializer.data
+        }) 

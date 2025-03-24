@@ -314,7 +314,21 @@ class DepartamentoViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.es_admin or user.is_superuser:
             return Departamento.objects.all()
-        return user.departamentos_acceso.all()
+        return Departamento.objects.filter(is_active=True)
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """
+        Activar/desactivar departamento
+        """
+        departamento = self.get_object()
+        departamento.is_active = not departamento.is_active
+        departamento.save()
+        return Response({
+            'status': 'success',
+            'message': f'Departamento {"activado" if departamento.is_active else "desactivado"} correctamente',
+            'is_active': departamento.is_active
+        })
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

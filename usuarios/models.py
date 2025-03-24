@@ -17,6 +17,7 @@ class Departamento(models.Model):
         usuario_correo (CharField): Usuario para autenticación en servidores de correo.
         password_correo (CharField): Contraseña para autenticación en servidores de correo.
         usar_tls (BooleanField): Indica si se debe usar TLS para la conexión.
+        is_active (BooleanField): Indica si el departamento está activo.
     """
     nombre = models.CharField(max_length=100, unique=True)
     tiene_bandeja = models.BooleanField(default=False, verbose_name="¿Tiene bandeja de entrada?")
@@ -27,6 +28,7 @@ class Departamento(models.Model):
     usuario_correo = models.CharField(max_length=255, blank=True, null=True, verbose_name="Usuario de correo")
     password_correo = models.CharField(max_length=255, blank=True, null=True, verbose_name="Contraseña de correo")
     usar_tls = models.BooleanField(default=True, verbose_name="Usar TLS")
+    is_active = models.BooleanField(default=True, verbose_name="¿Está activo?")
 
     def __str__(self):
         return self.nombre

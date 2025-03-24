@@ -16,7 +16,13 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   config => {
     // Asegurarse de que la URL termine en slash si no es una URL con parámetros
-    if (config.url && !config.url.includes('?') && !config.url.endsWith('/')) {
+    // y no es una acción personalizada (no contiene /toggle_active/, /reset_password/, etc.)
+    if (config.url && 
+        !config.url.includes('?') && 
+        !config.url.endsWith('/') && 
+        !config.url.includes('/toggle_active/') &&
+        !config.url.includes('/reset_password/') &&
+        !config.url.includes('/toggle_privilege/')) {
       config.url = `${config.url}/`;
     }
 

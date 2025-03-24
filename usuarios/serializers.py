@@ -7,7 +7,9 @@ User = get_user_model()
 class DepartamentoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Departamento
-        fields = ['id', 'nombre', 'tiene_bandeja']
+        fields = ['id', 'nombre', 'tiene_bandeja', 'servidor_entrante', 'servidor_saliente', 
+                 'puerto_entrante', 'puerto_saliente', 'usuario_correo', 'password_correo', 
+                 'usar_tls', 'is_active']
 
 class PrivilegioSerializer(serializers.ModelSerializer):
     class Meta:

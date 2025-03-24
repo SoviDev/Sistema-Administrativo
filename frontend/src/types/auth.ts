@@ -4,14 +4,15 @@ export interface Department {
   id: number;
   nombre: string;
   tiene_bandeja: boolean;
-  servidor_entrante: string;
-  servidor_saliente: string;
-  puerto_entrante: number;
-  puerto_saliente: number;
-  usuario_correo: string;
-  password_correo: string;
+  servidor_entrante: string | null;
+  servidor_saliente: string | null;
+  puerto_entrante: number | null;
+  puerto_saliente: number | null;
+  usuario_correo: string | null;
+  password_correo: string | null;
   usar_tls: boolean;
   usar_ssl: boolean;
+  is_active: boolean;
 }
 
 export enum PRIVILEGES {

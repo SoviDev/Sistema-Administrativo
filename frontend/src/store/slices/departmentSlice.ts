@@ -22,7 +22,7 @@ export const fetchDepartments = createAsyncThunk(
   'departments/fetchDepartments',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get<Department[]>('/api/departments/');
+      const response = await axios.get<Department[]>('/api/departamentos/');
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al obtener departamentos');
@@ -34,7 +34,7 @@ export const fetchDepartment = createAsyncThunk(
   'departments/fetchDepartment',
   async (departmentId: number, { rejectWithValue }) => {
     try {
-      const response = await axios.get<Department>(`/api/departments/${departmentId}/`);
+      const response = await axios.get<Department>(`/api/departamentos/${departmentId}/`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al obtener departamento');
@@ -46,7 +46,7 @@ export const createDepartment = createAsyncThunk(
   'departments/createDepartment',
   async (departmentData: Partial<Department>, { rejectWithValue }) => {
     try {
-      const response = await axios.post<Department>('/api/departments/', departmentData);
+      const response = await axios.post<Department>('/api/departamentos/', departmentData);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al crear departamento');
@@ -58,10 +58,22 @@ export const updateDepartment = createAsyncThunk(
   'departments/updateDepartment',
   async ({ id, data }: { id: number; data: Partial<Department> }, { rejectWithValue }) => {
     try {
-      const response = await axios.put<Department>(`/api/departments/${id}/`, data);
+      const response = await axios.put<Department>(`/api/departamentos/${id}/`, data);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al actualizar departamento');
+    }
+  }
+);
+
+export const toggleDepartmentActive = createAsyncThunk(
+  'departments/toggleActive',
+  async (departmentId: number, { rejectWithValue }) => {
+    try {
+      const response = await axios.post<Department>(`/api/departamentos/${departmentId}/toggle_active/`);
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.detail || 'Error al cambiar el estado del departamento');
     }
   }
 );
@@ -140,6 +152,25 @@ const departmentSlice = createSlice({
         }
       })
       .addCase(updateDepartment.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Toggle Department Active
+      .addCase(toggleDepartmentActive.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(toggleDepartmentActive.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.departments.findIndex(dept => dept.id === action.payload.id);
+        if (index !== -1) {
+          state.departments[index] = action.payload;
+        }
+        if (state.currentDepartment?.id === action.payload.id) {
+          state.currentDepartment = action.payload;
+        }
+      })
+      .addCase(toggleDepartmentActive.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
