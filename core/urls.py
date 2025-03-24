@@ -16,9 +16,32 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
+# Personalizar el administrador
+admin.site.site_header = settings.ADMIN_SITE_HEADER
+admin.site.site_title = settings.ADMIN_SITE_TITLE
+admin.site.index_title = settings.ADMIN_INDEX_TITLE
 
 urlpatterns = [
-    path('', include('tareas.urls')),  # ✅ Mantener esto si quieres que "tareas" esté en "/"
     path('admin/', admin.site.urls),
-    path('usuarios/', include('usuarios.urls', namespace="usuarios")),
-]
+    
+    # URLs de la API
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/', include('usuarios.api.urls')),
+    path('api/tareas/', include('tareas.api.urls')),
+    
+    # URLs para vistas web
+    path('', include('usuarios.urls')),
+    path('tareas/', include('tareas.urls')),
+    path('bandeja-entrada/', include('bandeja_entrada.urls')),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -1,6 +1,6 @@
 from django.urls import path
-from . import views
 from django.contrib.auth import views as auth_views
+from . import views
 
 app_name = "usuarios"
 
@@ -17,7 +17,7 @@ urlpatterns = [
     path('departamentos/crear/', views.CrearDepartamentoView.as_view(), name='crear_departamento'),
     path('departamentos/<int:departamento_id>/editar/', views.EditarDepartamentoView.as_view(), name='editar_departamento'),
     path('cambiar_contrasena/', auth_views.PasswordChangeView.as_view(
-        template_name="usuarios/cambiar_contrasena.html",  # 🔹 Sin prefijo "usuarios/"
+        template_name="usuarios/cambiar_contrasena.html",
         success_url="/"
     ), name='cambiar_contrasena'),
 ]

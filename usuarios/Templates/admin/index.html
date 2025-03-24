@@ -1,0 +1,204 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .app-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .app-item {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .app-item h2 {
+        margin: 0;
+        padding: 15px;
+        background: var(--primary);
+        color: #fff;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .model-list {
+        padding: 15px;
+    }
+
+    .model-item {
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 4px;
+        background: #f8f9fa;
+        transition: background-color 0.2s;
+    }
+
+    .model-item:hover {
+        background: #e9ecef;
+    }
+
+    .model-item a {
+        color: var(--primary);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .model-item .model-name {
+        font-weight: 500;
+    }
+
+    .model-item .model-count {
+        background: var(--accent);
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+    }
+
+    .recent-actions {
+        margin-top: 30px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .recent-actions h2 {
+        margin: 0;
+        padding: 15px;
+        background: var(--primary);
+        color: #fff;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .recent-actions-list {
+        padding: 15px;
+    }
+
+    .recent-actions-item {
+        padding: 10px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .recent-actions-item:last-child {
+        border-bottom: none;
+    }
+
+    .recent-actions-item i {
+        font-size: 1.1rem;
+    }
+
+    .recent-actions-item .action-time {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .empty-actions {
+        padding: 15px;
+        color: #6c757d;
+        font-style: italic;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="app-list">
+        {% for app in app_list %}
+        <div class="app-item">
+            <h2>
+                {% if app.app_label == 'usuarios' %}
+                    <i class="bi bi-people-fill"></i>
+                {% elif app.app_label == 'tareas' %}
+                    <i class="bi bi-list-check"></i>
+                {% elif app.app_label == 'bandeja_entrada' %}
+                    <i class="bi bi-envelope"></i>
+                {% else %}
+                    <i class="bi bi-grid"></i>
+                {% endif %}
+                {{ app.name }}
+            </h2>
+            <div class="model-list">
+                {% for model in app.models %}
+                <div class="model-item">
+                    {% if model.admin_url %}
+                    <a href="{{ model.admin_url }}">
+                        <span class="model-name">{{ model.name }}</span>
+                        {% if model.count is not None %}
+                        <span class="model-count">{{ model.count }}</span>
+                        {% endif %}
+                    </a>
+                    {% else %}
+                    {{ model.name }}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="recent-actions">
+        <h2>
+            <i class="bi bi-clock-history"></i>
+            {% trans 'Acciones Recientes' %}
+        </h2>
+        <div class="recent-actions-list">
+            {% load log %}
+            {% get_admin_log 10 as admin_log %}
+            {% if not admin_log %}
+            <p class="empty-actions">{% trans 'No hay acciones recientes' %}</p>
+            {% else %}
+            {% for entry in admin_log %}
+            <div class="recent-actions-item">
+                {% if entry.is_addition %}
+                <i class="bi bi-plus-circle text-success"></i>
+                {% elif entry.is_change %}
+                <i class="bi bi-pencil text-warning"></i>
+                {% elif entry.is_deletion %}
+                <i class="bi bi-trash text-danger"></i>
+                {% endif %}
+                <div>
+                    {% if entry.is_deletion or not entry.get_admin_url %}
+                    {{ entry.object_repr }}
+                    {% else %}
+                    <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                    {% endif %}
+                    <br>
+                    <span class="action-time">
+                        {% if entry.content_type %}
+                        {% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}
+                        {% else %}
+                        {% trans 'Unknown content' %}
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %} 

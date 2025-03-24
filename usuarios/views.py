@@ -6,10 +6,30 @@ from django.views.generic.edit import FormView
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.http import HttpResponseNotAllowed
-from .models import CustomUser, Departamento
-from django.contrib.auth import login, logout, authenticate
+from .models import CustomUser, Departamento, Privilegio, UsuarioPrivilegio
+from django.contrib.auth import login, logout, authenticate, get_user_model
 import random
 import string
+from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .serializers import (
+    UserSerializer, DepartamentoSerializer, PrivilegioSerializer,
+    UserPrivilegioSerializer
+)
+from rest_framework import viewsets, status
+
+User = get_user_model()
+
+def index(request):
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect('admin:index')
+        elif request.user.es_admin:
+            return redirect('tareas:pendientes')
+        else:
+            return redirect('tareas:pendientes')
+    return redirect('usuarios:login')
 
 def login_view(request):
     if request.method == 'POST':
@@ -188,3 +208,119 @@ class CrearDepartamentoView(LoginRequiredMixin, CreateView):
     def form_invalid(self, form):
         messages.error(self.request, "⚠️ Error al crear el departamento.")
         return super().form_invalid(form)
+
+class PrivilegioViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet para consultar privilegios disponibles
+    """
+    queryset = Privilegio.objects.all()
+    serializer_class = PrivilegioSerializer
+    permission_classes = [IsAuthenticated]
+
+class UserViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar usuarios
+    """
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filtrar usuarios según los privilegios del usuario actual
+        """
+        user = self.request.user
+        if user.es_admin or user.is_superuser:
+            return CustomUser.objects.all()
+        return CustomUser.objects.none()
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """
+        Activar/desactivar usuario
+        """
+        user = self.get_object()
+        user.is_active = not user.is_active
+        user.save()
+        return Response({'status': 'success'})
+
+    @action(detail=True, methods=['post'])
+    def reset_password(self, request, pk=None):
+        """
+        Restablecer contraseña
+        """
+        user = self.get_object()
+        temp_password = 'temporal123'  # En producción, usar algo más seguro
+        user.set_password(temp_password)
+        user.save()
+        return Response({
+            'status': 'success',
+            'temp_password': temp_password
+        })
+
+    @action(detail=True, methods=['post'])
+    def toggle_privilege(self, request, pk=None):
+        """
+        Activar/desactivar un privilegio para un usuario en un departamento específico
+        """
+        user = self.get_object()
+        privilegio_id = request.data.get('privilegio_id')
+        departamento_id = request.data.get('departamento_id')
+
+        try:
+            privilegio = Privilegio.objects.get(id=privilegio_id)
+            departamento = Departamento.objects.get(id=departamento_id)
+        except (Privilegio.DoesNotExist, Departamento.DoesNotExist):
+            return Response(
+                {'error': 'Privilegio o departamento no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Intentar obtener el privilegio existente
+        user_privilege = UsuarioPrivilegio.objects.filter(
+            usuario=user,
+            privilegio=privilegio,
+            departamento=departamento
+        ).first()
+
+        if user_privilege:
+            # Si existe, eliminarlo
+            user_privilege.delete()
+        else:
+            # Si no existe, crearlo
+            UsuarioPrivilegio.objects.create(
+                usuario=user,
+                privilegio=privilegio,
+                departamento=departamento
+            )
+
+        # Refrescar el usuario para obtener los privilegios actualizados
+        user.refresh_from_db()
+        serializer = self.get_serializer(user)
+        return Response(serializer.data)
+
+class DepartamentoViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar departamentos
+    """
+    queryset = Departamento.objects.all()
+    serializer_class = DepartamentoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filtrar departamentos según los privilegios del usuario actual
+        """
+        user = self.request.user
+        if user.es_admin or user.is_superuser:
+            return Departamento.objects.all()
+        return user.departamentos_acceso.all()
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me(request):
+    """
+    Vista para obtener los datos del usuario autenticado
+    """
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)

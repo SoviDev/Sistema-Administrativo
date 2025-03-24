@@ -1,0 +1,21 @@
+{% if user.is_staff %}
+<div class="mb-4">
+    <form method="get" class="row g-3 align-items-center" id="departamentoForm">
+        <div class="col-auto">
+            <label for="departamento" class="col-form-label">
+                <i class="fas fa-building"></i> Departamento:
+            </label>
+        </div>
+        <div class="col-auto">
+            <select name="departamento" id="departamento" class="form-select" onchange="this.form.submit()">
+                <option value="">Todos los departamentos</option>
+                {% for depto in departamentos %}
+                    <option value="{{ depto.id }}" {% if departamento_seleccionado == depto.id %}selected{% endif %}>
+                        {{ depto.nombre }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+</div>
+{% endif %} 

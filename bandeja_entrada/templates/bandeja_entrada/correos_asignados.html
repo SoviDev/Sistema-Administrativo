@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Correos Asignados{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">
+        <i class="fas fa-user-check"></i> Correos Asignados
+    </h1>
+
+    {% include 'bandeja_entrada/partials/selector_departamento.html' %}
+
+    {% if correos %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Asunto</th>
+                        <th>Remitente</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Departamento</th>
+                        <th>Fecha Asignación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for correo in correos %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'bandeja_entrada:detalle_correo' correo.id %}" class="text-decoration-none">
+                                {{ correo.asunto }}
+                            </a>
+                        </td>
+                        <td>{{ correo.remitente }}</td>
+                        <td>{{ correo.fecha_recepcion|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <span class="badge {% if correo.estado == 'Pendiente' %}bg-warning{% elif correo.estado == 'En Proceso' %}bg-info{% elif correo.estado == 'Completado' %}bg-success{% elif correo.estado == 'Archivado' %}bg-secondary{% endif %}">
+                                {{ correo.estado }}
+                            </span>
+                        </td>
+                        <td>{{ correo.departamento.nombre }}</td>
+                        <td>{{ correo.fecha_asignacion|date:"d/m/Y H:i"|default:"--" }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'bandeja_entrada:detalle_correo' correo.id %}" class="btn btn-sm btn-info" title="Ver detalle">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'bandeja_entrada:responder_correo' correo.id %}" class="btn btn-sm btn-success" title="Responder">
+                                    <i class="fas fa-reply"></i>
+                                </a>
+                                <a href="{% url 'bandeja_entrada:cambiar_estado' correo.id %}" class="btn btn-sm btn-primary" title="Cambiar estado">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </a>
+                                <a href="{% url 'bandeja_entrada:trasladar_correo' correo.id %}" class="btn btn-sm btn-warning" title="Trasladar">
+                                    <i class="fas fa-share"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No tienes correos asignados.
+        </div>
+    {% endif %}
+
+    <div class="mt-3">
+        <a href="{% url 'bandeja_entrada:bandeja_entrada' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a Bandeja de Entrada
+        </a>
+    </div>
+</div>
+{% endblock %} 

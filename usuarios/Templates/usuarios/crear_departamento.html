@@ -1,23 +1,180 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+<style>
+    .config-correo-section {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        margin-bottom: 1.5rem;
+        background-color: #f8f9fa;
+    }
+    
+    .config-correo-section h4 {
+        color: #495057;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 0.5rem;
+    }
+
+    .form-check {
+        margin-bottom: 1rem;
+    }
+
+    .invalid-feedback {
+        display: block;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="card shadow-lg">
         <div class="card-header bg-dark text-white">
-            <h2 class="mb-0"><i class="bi bi-building-add"></i> Crear Departamento</h2>
+            <h2 class="mb-0">
+                {% if form.instance.pk %}
+                <i class="bi bi-building-gear"></i> Editar Departamento
+                {% else %}
+                <i class="bi bi-building-add"></i> Crear Departamento
+                {% endif %}
+            </h2>
         </div>
         <div class="card-body">
             <form method="post">
                 {% csrf_token %}
                 
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+
                 <div class="mb-3">
                     <label for="nombre" class="form-label">Nombre del Departamento</label>
-                    <input type="text" name="nombre" id="nombre" class="form-control" required>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.nombre.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        {{ form.tiene_bandeja }}
+                        <label class="form-check-label" for="tiene_bandeja">
+                            ¿Tiene bandeja de entrada?
+                        </label>
+                    </div>
+                </div>
+
+                <div class="config-correo-section">
+                    <h4><i class="bi bi-envelope-gear"></i> Configuración de Correo</h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="servidor_entrante" class="form-label">
+                                    <i class="bi bi-download"></i> Servidor IMAP
+                                </label>
+                                {{ form.servidor_entrante }}
+                                {% if form.servidor_entrante.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.servidor_entrante.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="puerto_entrante" class="form-label">Puerto IMAP</label>
+                                {{ form.puerto_entrante }}
+                                {% if form.puerto_entrante.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.puerto_entrante.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="servidor_saliente" class="form-label">
+                                    <i class="bi bi-upload"></i> Servidor SMTP
+                                </label>
+                                {{ form.servidor_saliente }}
+                                {% if form.servidor_saliente.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.servidor_saliente.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="puerto_saliente" class="form-label">Puerto SMTP</label>
+                                {{ form.puerto_saliente }}
+                                {% if form.puerto_saliente.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.puerto_saliente.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="usuario_correo" class="form-label">
+                                    <i class="bi bi-person"></i> Usuario de Correo
+                                </label>
+                                {{ form.usuario_correo }}
+                                {% if form.usuario_correo.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.usuario_correo.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password_correo" class="form-label">
+                                    <i class="bi bi-key"></i> Contraseña de Correo
+                                </label>
+                                {{ form.password_correo }}
+                                {% if form.password_correo.errors %}
+                                    <div class="invalid-feedback">
+                                        {{ form.password_correo.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.usar_tls }}
+                            <label class="form-check-label" for="usar_tls">
+                                <i class="bi bi-shield-check"></i> Usar TLS (recomendado)
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="d-grid gap-2">
                     <button type="submit" class="btn btn-primary">
+                        {% if form.instance.pk %}
+                        <i class="bi bi-save"></i> Guardar Cambios
+                        {% else %}
                         <i class="bi bi-plus-circle"></i> Crear Departamento
+                        {% endif %}
                     </button>
                     <a href="{% url 'usuarios:lista_departamentos' %}" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Volver
@@ -27,4 +184,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+    {{ form.media }}
 {% endblock %}

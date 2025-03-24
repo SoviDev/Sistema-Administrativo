@@ -1,0 +1,282 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title }} | {{ site_title|default:_('Sistema Administrativo') }}{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    {% block extrastyle %}{% endblock %}
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --primary-fg: #fff;
+            --body-bg: #f8f9fa;
+            --body-quiet-color: #666;
+            --body-loud-color: #000;
+        }
+
+        body {
+            background-color: var(--body-bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        /* Header */
+        #header {
+            background: var(--primary);
+            color: var(--primary-fg);
+            padding: 15px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #branding h1 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        #branding h1 a {
+            color: var(--primary-fg);
+            text-decoration: none;
+        }
+
+        #user-tools {
+            font-size: 0.875rem;
+        }
+
+        #user-tools a {
+            color: var(--primary-fg);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding: 2px 4px;
+            margin-left: 10px;
+        }
+
+        #user-tools a:hover {
+            color: #fff;
+            border-bottom-color: #fff;
+        }
+
+        /* Content */
+        #container {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            max-width: 1200px;
+            padding: 20px;
+        }
+
+        .module {
+            margin-bottom: 20px;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .module h2 {
+            background: var(--primary);
+            color: var(--primary-fg);
+            padding: 12px 15px;
+            font-size: 1rem;
+            margin: 0;
+            border-radius: 4px 4px 0 0;
+        }
+
+        /* Forms */
+        .form-row {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-row:last-child {
+            border-bottom: none;
+        }
+
+        .form-row label {
+            display: block;
+            font-weight: 600;
+            color: var(--body-loud-color);
+            margin-bottom: 4px;
+        }
+
+        .form-row input[type=text],
+        .form-row input[type=password],
+        .form-row input[type=email],
+        .form-row select,
+        .form-row textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Tables */
+        #changelist table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #changelist table thead th {
+            background: var(--primary);
+            color: var(--primary-fg);
+            padding: 8px;
+            font-weight: 600;
+            text-align: left;
+        }
+
+        #changelist table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        #changelist table tbody tr:hover {
+            background-color: #e9ecef;
+        }
+
+        #changelist table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Buttons */
+        .button, input[type=submit], input[type=button] {
+            background: var(--primary);
+            color: #fff;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 0.875rem;
+        }
+
+        .button:hover, input[type=submit]:hover, input[type=button]:hover {
+            background: var(--secondary);
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .button.default {
+            background: var(--accent);
+        }
+
+        /* Messages */
+        .messagelist {
+            padding: 0;
+            margin: 0 0 20px 0;
+            list-style: none;
+        }
+
+        .messagelist li {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .messagelist li.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .messagelist li.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .messagelist li.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            #header {
+                padding: 15px 20px;
+            }
+
+            #container {
+                margin: 10px;
+                padding: 10px;
+            }
+        }
+
+        /* Estilo para el botón de cierre de sesión */
+        .logout-form {
+            display: inline;
+        }
+        
+        .logout-button {
+            background: none;
+            border: none;
+            color: var(--primary-fg);
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding: 2px 4px;
+            margin-left: 10px;
+            font-size: inherit;
+            cursor: pointer;
+        }
+        
+        .logout-button:hover {
+            color: #fff;
+            border-bottom-color: #fff;
+        }
+    </style>
+    {% block extrahead %}{% endblock %}
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+    <div id="container">
+        <div id="header">
+            <div id="branding">
+                {% block branding %}
+                <h1 id="site-name">
+                    <i class="bi bi-building"></i>
+                    <a href="{% url 'admin:index' %}">{{ site_header|default:_('Sistema Administrativo') }}</a>
+                </h1>
+                {% endblock %}
+            </div>
+            {% if user.is_authenticated %}
+            <div id="user-tools">
+                {% block usertools %}
+                <span>Bienvenido, <strong>{% firstof user.get_short_name user.get_username %}</strong></span>
+                {% if user.has_usable_password %}
+                <a href="{% url 'admin:password_change' %}">
+                    <i class="bi bi-key"></i> Cambiar contraseña
+                </a>
+                {% endif %}
+                <form method="post" action="{% url 'admin:logout' %}" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-button">
+                        <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                    </button>
+                </form>
+                {% endblock %}
+            </div>
+            {% endif %}
+        </div>
+        {% block messages %}
+            {% if messages %}
+            <ul class="messagelist">
+                {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|capfirst }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endblock messages %}
+        <div id="content" class="{% block coltype %}colM{% endblock %}">
+            {% block pretitle %}{% endblock %}
+            {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
+            {% block content_subtitle %}{% if subtitle %}<h2>{{ subtitle }}</h2>{% endif %}{% endblock %}
+            {% block content %}{% endblock %}
+            {% block sidebar %}{% endblock %}
+        </div>
+    </div>
+    {% block footer %}{% endblock %}
+</body>
+</html> 

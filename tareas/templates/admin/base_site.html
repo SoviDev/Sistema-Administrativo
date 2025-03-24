@@ -1,0 +1,309 @@
+{% extends 'admin/base.html' %}
+{% load i18n static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Sistema Administrativo') }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* Variables CSS - Tema del sistema */
+    :root {
+        --primary: #2c3e50;
+        --primary-light: #34495e;
+        --primary-dark: #1a252f;
+        --accent: #3498db;
+        --accent-light: #5dade2;
+        --accent-dark: #2980b9;
+        --success: #2ecc71;
+        --warning: #f1c40f;
+        --danger: #e74c3c;
+        --gray-100: #f8f9fa;
+        --gray-200: #e9ecef;
+        --gray-300: #dee2e6;
+        --gray-400: #ced4da;
+        --gray-500: #adb5bd;
+        --gray-600: #6c757d;
+        --gray-700: #495057;
+        --gray-800: #343a40;
+        --gray-900: #212529;
+        --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+        --shadow: 0 1px 3px rgba(0,0,0,0.1);
+        --radius-sm: 4px;
+        --radius: 6px;
+        --radius-lg: 8px;
+        --spacing-1: 0.25rem;
+        --spacing-2: 0.5rem;
+        --spacing-3: 1rem;
+        --spacing-4: 1.5rem;
+        --spacing-5: 2rem;
+    }
+
+    /* Reset y base */
+    body {
+        font-family: var(--font-family-sans);
+        background-color: var(--gray-100);
+        color: var(--gray-900);
+        line-height: 1.5;
+    }
+
+    /* Header y navegación */
+    #header {
+        background: var(--primary);
+        color: white;
+        padding: var(--spacing-3) var(--spacing-4);
+        box-shadow: var(--shadow);
+    }
+
+    #branding h1 {
+        font-size: 1.5rem;
+        margin: 0;
+    }
+
+    #branding h1 a:link,
+    #branding h1 a:visited {
+        color: white;
+    }
+
+    #user-tools {
+        font-size: 0.875rem;
+    }
+
+    #user-tools a:link,
+    #user-tools a:visited {
+        color: rgba(255,255,255,0.85);
+        text-decoration: none;
+    }
+
+    #user-tools a:hover {
+        color: white;
+        text-decoration: underline;
+    }
+
+    /* Breadcrumbs */
+    div.breadcrumbs {
+        background: var(--primary-light);
+        padding: var(--spacing-2) var(--spacing-4);
+        color: white;
+        font-size: 0.875rem;
+        border: none;
+    }
+
+    div.breadcrumbs a {
+        color: rgba(255,255,255,0.85);
+    }
+
+    div.breadcrumbs a:hover {
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Contenido principal */
+    #content {
+        padding: var(--spacing-4);
+    }
+
+    .module {
+        background: white;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-bottom: var(--spacing-4);
+        overflow: hidden;
+    }
+
+    .module h2 {
+        background: var(--primary);
+        color: white;
+        padding: var(--spacing-3);
+        font-size: 1rem;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Tablas */
+    #changelist table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid var(--gray-300);
+        border-radius: var(--radius);
+        background: white;
+    }
+
+    #changelist table thead th {
+        background: var(--primary);
+        color: white;
+        padding: var(--spacing-3);
+        font-weight: 500;
+        text-align: left;
+        border-bottom: 2px solid var(--primary-dark);
+    }
+
+    #changelist table thead th a {
+        color: white !important;
+        text-decoration: none;
+    }
+
+    #changelist table tbody td {
+        padding: var(--spacing-3);
+        border-bottom: 1px solid var(--gray-300);
+        vertical-align: middle;
+    }
+
+    #changelist table tbody tr:hover {
+        background-color: var(--gray-100);
+    }
+
+    /* Filtros */
+    #changelist-filter {
+        background: white;
+        border-radius: var(--radius);
+        border: 1px solid var(--gray-300);
+        margin-bottom: var(--spacing-4);
+    }
+
+    #changelist-filter h2 {
+        background: var(--primary);
+        color: white;
+        padding: var(--spacing-3);
+        margin: 0;
+        font-size: 1rem;
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    #changelist-filter h3 {
+        font-size: 0.875rem;
+        padding: var(--spacing-2) var(--spacing-3);
+        margin: 0;
+        color: var(--gray-700);
+    }
+
+    #changelist-filter ul {
+        list-style: none;
+        margin: 0;
+        padding: var(--spacing-2) 0;
+    }
+
+    #changelist-filter li {
+        padding: var(--spacing-1) var(--spacing-3);
+    }
+
+    #changelist-filter li.selected {
+        background-color: var(--accent);
+        color: white;
+    }
+
+    #changelist-filter li.selected a {
+        color: white;
+    }
+
+    /* Botones y acciones */
+    .object-tools {
+        margin-top: var(--spacing-3);
+        margin-bottom: var(--spacing-3);
+        padding: 0;
+        list-style: none;
+    }
+
+    .object-tools li {
+        display: inline-block;
+        margin-left: var(--spacing-2);
+    }
+
+    .addlink {
+        background: var(--accent);
+        color: white !important;
+        padding: var(--spacing-2) var(--spacing-3);
+        border-radius: var(--radius-sm);
+        text-decoration: none !important;
+        display: inline-block;
+        font-weight: 500;
+    }
+
+    .addlink:hover {
+        background: var(--accent-dark);
+    }
+
+    /* Estados de tareas */
+    .estado {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-2);
+        padding: var(--spacing-1) var(--spacing-3);
+        border-radius: var(--radius-lg);
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .estado-pendiente {
+        background-color: var(--warning);
+        color: var(--gray-900);
+    }
+
+    .estado-en_progreso {
+        background-color: var(--accent);
+        color: white;
+    }
+
+    .estado-completada {
+        background-color: var(--success);
+        color: white;
+    }
+
+    .estado-cancelada {
+        background-color: var(--danger);
+        color: white;
+    }
+
+    /* Paginación */
+    .paginator {
+        margin: var(--spacing-4) 0;
+        padding: var(--spacing-3);
+        background: white;
+        border-radius: var(--radius);
+        border: 1px solid var(--gray-300);
+        text-align: center;
+    }
+
+    .paginator .this-page {
+        background: var(--accent);
+        color: white;
+        padding: var(--spacing-1) var(--spacing-2);
+        border-radius: var(--radius-sm);
+        font-weight: 500;
+    }
+
+    /* Formularios */
+    .aligned label {
+        width: 160px;
+        color: var(--gray-700);
+    }
+
+    .form-row {
+        padding: var(--spacing-3);
+        border-bottom: 1px solid var(--gray-300);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        #changelist-filter {
+            width: 100% !important;
+            float: none;
+            margin-top: var(--spacing-3);
+        }
+
+        .change-list .filtered .results {
+            margin-right: 0 !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">{{ site_header|default:_('Sistema Administrativo') }}</a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %} 

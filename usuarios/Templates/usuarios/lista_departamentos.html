@@ -12,6 +12,8 @@
         <thead>
             <tr>
                 <th>Nombre</th>
+                <th>Bandeja de Entrada</th>
+                <th>Estado Configuración</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -19,6 +21,24 @@
             {% for departamento in departamentos %}
             <tr>
                 <td>{{ departamento.nombre }}</td>
+                <td>
+                    {% if departamento.tiene_bandeja %}
+                        <span class="badge bg-success">Activada</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Desactivada</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if departamento.tiene_bandeja %}
+                        {% if departamento.servidor_entrante and departamento.servidor_saliente %}
+                            <span class="badge bg-success">Configurada</span>
+                        {% else %}
+                            <span class="badge bg-warning">Pendiente</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge bg-secondary">No requerida</span>
+                    {% endif %}
+                </td>
                 <td>
                     <a href="{% url 'usuarios:editar_departamento' departamento.id %}" class="btn btn-sm btn-warning">
                         <i class="bi bi-pencil"></i> Editar
