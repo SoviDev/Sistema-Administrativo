@@ -31,7 +31,7 @@ export const fetchTasks = createAsyncThunk(
   'tasks/fetchTasks',
   async (filters: TaskFilters = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get('/api/tasks/', { params: filters });
+      const response = await axios.get('/api/tareas/', { params: filters });
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Error al cargar las tareas');
@@ -43,7 +43,7 @@ export const fetchTask = createAsyncThunk(
   'tasks/fetchTask',
   async (taskId: string, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/tasks/${taskId}/`);
+      const response = await axios.get(`/api/tareas/${taskId}/`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Error al cargar la tarea');
@@ -55,7 +55,7 @@ export const createTask = createAsyncThunk(
   'tasks/createTask',
   async (taskData: Partial<Task>, { rejectWithValue }) => {
     try {
-      const response = await axios.post('/api/tasks/', taskData);
+      const response = await axios.post('/api/tareas/', taskData);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Error al crear la tarea');
@@ -67,7 +67,7 @@ export const updateTask = createAsyncThunk(
   'tasks/updateTask',
   async ({ id, data }: { id: string; data: Partial<Task> }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`/api/tasks/${id}/`, data);
+      const response = await axios.put(`/api/tareas/${id}/`, data);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Error al actualizar la tarea');
@@ -79,7 +79,7 @@ export const deleteTask = createAsyncThunk(
   'tasks/deleteTask',
   async (taskId: number, { rejectWithValue }) => {
     try {
-      await axios.delete(`/api/tasks/${taskId}/`);
+      await axios.delete(`/api/tareas/${taskId}/`);
       return taskId;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Error al eliminar la tarea');
@@ -91,7 +91,7 @@ export const changeTaskStatus = createAsyncThunk(
   'tasks/changeTaskStatus',
   async ({ taskId, status }: { taskId: number; status: TaskStatus }, { rejectWithValue }) => {
     try {
-      const response = await axios.patch(`/api/tasks/${taskId}/status/`, { status });
+      const response = await axios.patch(`/api/tareas/${taskId}/status/`, { status });
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Error al cambiar el estado de la tarea');
@@ -159,11 +159,9 @@ const taskSlice = createSlice({
       })
       .addCase(updateTask.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.tasks.findIndex((task) => task.id === action.payload.id);
-        if (index !== -1) {
-          state.tasks[index] = action.payload;
-        }
-        state.currentTask = action.payload;
+        state.tasks = state.tasks.map(task =>
+          task.id === action.payload.id ? action.payload : task
+        );
       })
       .addCase(updateTask.rejected, (state, action) => {
         state.loading = false;
@@ -175,10 +173,7 @@ const taskSlice = createSlice({
       })
       .addCase(deleteTask.fulfilled, (state, action) => {
         state.loading = false;
-        state.tasks = state.tasks.filter((task) => task.id !== action.payload);
-        if (state.currentTask?.id === action.payload) {
-          state.currentTask = null;
-        }
+        state.tasks = state.tasks.filter(task => task.id !== action.payload);
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.loading = false;
@@ -190,13 +185,9 @@ const taskSlice = createSlice({
       })
       .addCase(changeTaskStatus.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.tasks.findIndex((task) => task.id === action.payload.id);
-        if (index !== -1) {
-          state.tasks[index] = action.payload;
-        }
-        if (state.currentTask?.id === action.payload.id) {
-          state.currentTask = action.payload;
-        }
+        state.tasks = state.tasks.map(task =>
+          task.id === action.payload.id ? action.payload : task
+        );
       })
       .addCase(changeTaskStatus.rejected, (state, action) => {
         state.loading = false;

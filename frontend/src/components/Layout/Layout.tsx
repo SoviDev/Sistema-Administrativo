@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -9,8 +9,9 @@ import {
   Container,
   useTheme,
   useMediaQuery,
+  Button,
 } from '@mui/material';
-import { Menu as MenuIcon, Logout as LogoutIcon } from '@mui/icons-material';
+import { Menu as MenuIcon, Logout as LogoutIcon, Key as KeyIcon } from '@mui/icons-material';
 import { useAppDispatch } from '../../hooks/useAppDispatch';
 import { useAppSelector } from '../../hooks/useAppSelector';
 import { logout } from '../../store/slices/authSlice';
@@ -18,6 +19,7 @@ import { clearSelectedDepartment } from '../../store/slices/departmentSlice';
 import { RootState } from '../../store/store';
 import DepartmentSelector from '../DepartmentSelector';
 import Sidebar from './Sidebar';
+import ChangePasswordDialog from '../ChangePasswordDialog';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +27,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state: RootState) => state.auth);
@@ -70,6 +73,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Typography variant="body2" sx={{ mr: 2 }}>
               {user?.username}
             </Typography>
+            <Button
+              color="inherit"
+              startIcon={<KeyIcon />}
+              onClick={() => setChangePasswordOpen(true)}
+              sx={{ mr: 2 }}
+            >
+              Cambiar Contraseña
+            </Button>
             <IconButton 
               color="inherit" 
               onClick={handleLogout}
@@ -102,6 +113,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </Container>
       </Box>
+
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+      />
     </Box>
   );
 };

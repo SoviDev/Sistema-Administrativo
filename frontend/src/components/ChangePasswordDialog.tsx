@@ -26,8 +26,12 @@ const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({ open, onClo
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
+    setValidationError('');
+    setSuccess(false);
+
     // Validar que las contraseñas coincidan
     if (newPassword !== confirmPassword) {
       setValidationError('Las contraseñas no coinciden');
@@ -42,18 +46,24 @@ const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({ open, onClo
 
     try {
       if (user) {
-        await dispatch(changePassword({
+        const result = await dispatch(changePassword({
           userId: user.id,
           oldPassword,
           newPassword
         })).unwrap();
         
-        // Limpiar campos y cerrar diálogo
-        setOldPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setValidationError('');
-        onClose();
+        if (result.status === 'success') {
+          setSuccess(true);
+          // Limpiar campos después de 2 segundos y cerrar el diálogo
+          setTimeout(() => {
+            setOldPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            setValidationError('');
+            setSuccess(false);
+            onClose();
+          }, 2000);
+        }
       }
     } catch (error) {
       console.error('Error al cambiar la contraseña:', error);
@@ -72,6 +82,12 @@ const ChangePasswordDialog: React.FC<ChangePasswordDialogProps> = ({ open, onClo
           {(error || validationError) && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error || validationError}
+            </Alert>
+          )}
+
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Contraseña actualizada correctamente
             </Alert>
           )}
 

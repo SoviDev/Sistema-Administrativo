@@ -14,7 +14,7 @@ const initialState: AuthState = {
 
 export const login = createAsyncThunk<{ token: string; user: User }, LoginCredentials>(
   'auth/login',
-  async (credentials, { rejectWithValue, dispatch }) => {
+  async (credentials, { rejectWithValue }) => {
     try {
       const tokenResponse = await axios.post<LoginResponse>('/api/token/', credentials);
       const { access, refresh } = tokenResponse.data;
@@ -27,20 +27,21 @@ export const login = createAsyncThunk<{ token: string; user: User }, LoginCreden
       const userResponse = await axios.get<User>('/api/me/');
       const user = userResponse.data;
 
-      if (user.departamentos_acceso.length > 0) {
-        dispatch(setSelectedDepartment(user.departamentos_acceso[0]));
-      }
-
       return { token: access, user };
     } catch (error: any) {
       if (!error.response) {
         return rejectWithValue('Error de conexión con el servidor');
       }
+
+      if (error.response.status === 401) {
+        return rejectWithValue('Usuario o contraseña incorrectos');
+      }
+
       return rejectWithValue(
         error.response?.data?.detail || 
         error.response?.data?.message || 
         error.response?.data?.non_field_errors?.[0] ||
-        'Credenciales inválidas'
+        'Error al iniciar sesión. Por favor, intente nuevamente'
       );
     }
   }
@@ -55,10 +56,10 @@ export const logout = createAsyncThunk<void, void>(
 
 export const validateToken = createAsyncThunk<ValidationResponse, void>(
   'auth/validateToken',
-  async (_, { dispatch }) => {
+  async (_, { rejectWithValue }) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      throw new Error('No hay token almacenado');
+      return rejectWithValue(null);
     }
 
     try {
@@ -68,14 +69,11 @@ export const validateToken = createAsyncThunk<ValidationResponse, void>(
         },
       });
 
-      if (response.data.departamentos_acceso.length > 0) {
-        dispatch(setSelectedDepartment(response.data.departamentos_acceso[0]));
-      }
-
       return { user: response.data };
     } catch (error) {
       localStorage.removeItem('token');
-      throw new Error('Token inválido');
+      localStorage.removeItem('refresh_token');
+      return rejectWithValue('La sesión ha expirado. Por favor, inicie sesión nuevamente');
     }
   }
 );
@@ -171,7 +169,7 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.token = null;
-        state.error = action.payload as string || 'Error al validar el token';
+        state.error = action.payload ? (action.payload as string) : null;
       })
       .addCase(getUser.pending, (state) => {
         state.loading = true;

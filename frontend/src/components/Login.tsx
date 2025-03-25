@@ -59,10 +59,10 @@ const Login: React.FC = () => {
       ...prev,
       [name]: value,
     }));
-    // Limpiar errores cuando el usuario empieza a escribir
+    
     setFormErrors((prev) => ({
       ...prev,
-      [name]: '',
+      [name]: ''
     }));
   };
 
@@ -87,19 +87,15 @@ const Login: React.FC = () => {
     return isValid;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     
     if (!validateForm()) {
       return;
     }
 
-    try {
-      await dispatch(login(formData)).unwrap();
-    } catch (error: any) {
-      // El error ya se maneja en el slice y se mostrará en el componente
-      console.error('Error al iniciar sesión:', error.message);
-    }
+    dispatch(login(formData));
   };
 
   const handleClickShowPassword = () => {
@@ -158,19 +154,13 @@ const Login: React.FC = () => {
               sx={{ 
                 mb: 2,
                 borderRadius: 1,
-                '& .MuiAlert-message': {
-                  width: '100%'
-                }
               }}
-              onClose={() => dispatch(clearError())}
             >
-              <Typography variant="body2">
-                {error}
-              </Typography>
+              {error}
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <Box component="form" onSubmit={handleSubmit} noValidate>
             <TextField
               margin="normal"
               required
@@ -230,6 +220,7 @@ const Login: React.FC = () => {
               type="submit"
               fullWidth
               variant="contained"
+              disabled={loading}
               sx={{ 
                 mt: 3, 
                 mb: 2,
@@ -238,7 +229,6 @@ const Login: React.FC = () => {
                 textTransform: 'none',
                 fontSize: '1rem',
               }}
-              disabled={loading}
             >
               {loading ? (
                 <CircularProgress size={24} color="inherit" />
@@ -247,28 +237,20 @@ const Login: React.FC = () => {
               )}
             </Button>
 
-            <Divider sx={{ my: 2 }}>
-              <Typography variant="body2" color="text.secondary">
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 ¿Necesitas ayuda?
               </Typography>
-            </Divider>
-
-            <Box sx={{ textAlign: 'center' }}>
               <Link
                 component="button"
                 variant="body2"
                 onClick={() => {/* TODO: Implementar recuperación de contraseña */}}
-                sx={{ 
-                  textDecoration: 'none',
-                  '&:hover': {
-                    textDecoration: 'underline',
-                  },
-                }}
+                sx={{ textDecoration: 'none' }}
               >
                 ¿Olvidaste tu contraseña?
               </Link>
             </Box>
-          </form>
+          </Box>
         </Paper>
       </Box>
     </Container>

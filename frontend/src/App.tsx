@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, CircularProgress, Box } from '@mui/material';
 import { createTheme } from '@mui/material/styles';
 import { RootState } from './store/store';
@@ -18,7 +18,6 @@ import NotFound from './components/NotFound';
 import TaskHistory from './components/TaskHistory';
 import TaskForm from './components/TaskForm';
 import TaskDetail from './components/TaskDetail';
-import UserPrivilegesManager from './components/UserPrivilegesManager';
 
 const theme = createTheme({
   palette: {
@@ -69,40 +68,17 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <Layout>{children}</Layout>;
 };
 
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAppSelector((state: RootState) => state.auth);
-  const location = useLocation();
-  
-  if (isAuthenticated && location.pathname === '/login') {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const UserPrivilegesRoute: React.FC = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  
-  return (
-    <AdminRoute>
-      <UserPrivilegesManager 
-        userId={id ? parseInt(id) : 0} 
-        onClose={() => navigate('/usuarios')} 
-      />
-    </AdminRoute>
-  );
-};
-
 function App() {
   const dispatch = useAppDispatch();
-  const { loading, isAuthenticated } = useAppSelector((state: RootState) => state.auth);
+  const { loading } = useAppSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Solo validar el token si existe uno almacenado
+    const token = localStorage.getItem('token');
+    if (token) {
       dispatch(validateToken());
     }
-  }, [dispatch, isAuthenticated]);
+  }, [dispatch]);
 
   if (loading) {
     return <LoadingScreen />;
@@ -113,21 +89,14 @@ function App() {
       <CssBaseline />
       <Router>
         <Routes>
-          <Route 
-            path="/" 
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
             element={
               <PrivateRoute>
                 <Home />
               </PrivateRoute>
-            } 
-          />
-          <Route 
-            path="/login" 
-            element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            } 
+            }
           />
           <Route
             path="/tareas"
@@ -146,7 +115,7 @@ function App() {
             }
           />
           <Route
-            path="/tareas/nueva"
+            path="/tareas/nuevo"
             element={
               <PrivateRoute>
                 <TaskForm />
@@ -162,64 +131,52 @@ function App() {
             }
           />
           <Route
-            path="/tareas/:taskId/editar"
-            element={
-              <PrivateRoute>
-                <TaskForm />
-              </PrivateRoute>
-            }
-          />
-          <Route
             path="/usuarios"
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <UserList />
-              </PrivateRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/usuarios/nuevo"
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <UserForm />
-              </PrivateRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/usuarios/editar/:userId"
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <UserForm />
-              </PrivateRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/departamentos"
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <DepartmentList />
-              </PrivateRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/departamentos/nuevo"
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <DepartmentForm />
-              </PrivateRoute>
+              </AdminRoute>
             }
           />
           <Route
             path="/departamentos/editar/:departmentId"
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <DepartmentForm />
-              </PrivateRoute>
+              </AdminRoute>
             }
-          />
-          <Route
-            path="/usuarios/:id/privileges"
-            element={<UserPrivilegesRoute />}
           />
           <Route path="*" element={<NotFound />} />
         </Routes>

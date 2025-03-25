@@ -1,5 +1,9 @@
 import axios from 'axios';
 
+interface CustomError extends Error {
+  response?: any;
+}
+
 // Crear una instancia de axios con la configuración base
 const axiosInstance = axios.create({
   baseURL: process.env.NODE_ENV === 'production' 
@@ -9,14 +13,13 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // Cambiado a false para evitar problemas de CORS
+  withCredentials: true,
 });
 
 // Interceptor para agregar el token y trailing slash a las URLs
 axiosInstance.interceptors.request.use(
   config => {
     // Asegurarse de que la URL termine en slash si no es una URL con parámetros
-    // y no es una acción personalizada (no contiene /toggle_active/, /reset_password/, etc.)
     if (config.url && 
         !config.url.includes('?') && 
         !config.url.endsWith('/') && 
@@ -49,26 +52,53 @@ axiosInstance.interceptors.response.use(
     let errorMessage = 'Error en la petición';
 
     if (error.response) {
-      if (error.response.status === 401 && !error.config.url?.includes('login')) {
+      // Solo redirigir al login si es un 401 y NO es una petición de token o login
+      if (error.response.status === 401 && 
+          !error.config.url?.includes('token') && 
+          !error.config.url?.includes('login')) {
         // Limpiar el token
         localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
         // Redirigir al login
         window.location.href = '/login';
-        errorMessage = 'Sesión expirada. Por favor, inicie sesión nuevamente.';
+        errorMessage = 'La sesión ha expirado. Por favor, inicie sesión nuevamente.';
       } else {
-        errorMessage = error.response.data?.detail || 
-                      error.response.data?.message || 
-                      error.response.data?.non_field_errors?.[0] ||
-                      error.response.data?.error ||
-                      `Error ${error.response.status}: ${error.response.statusText}`;
+        // Manejar diferentes tipos de errores
+        switch (error.response.status) {
+          case 400:
+            errorMessage = error.response.data?.detail || 
+                         error.response.data?.message || 
+                         error.response.data?.non_field_errors?.[0] ||
+                         'Datos inválidos. Por favor, verifique la información.';
+            break;
+          case 401:
+            errorMessage = 'Usuario o contraseña incorrectos';
+            break;
+          case 403:
+            errorMessage = 'No tiene permisos para realizar esta acción';
+            break;
+          case 404:
+            errorMessage = 'El recurso solicitado no existe';
+            break;
+          case 500:
+            errorMessage = 'Error interno del servidor. Por favor, intente más tarde';
+            break;
+          default:
+            errorMessage = error.response.data?.detail || 
+                         error.response.data?.message || 
+                         error.response.data?.non_field_errors?.[0] ||
+                         'Error en la petición. Por favor, intente nuevamente';
+        }
       }
     } else if (error.request) {
-      errorMessage = 'No se pudo conectar con el servidor. Por favor, verifica tu conexión.';
+      errorMessage = 'No se pudo conectar con el servidor. Por favor, verifique su conexión.';
     } else {
       errorMessage = error.message || 'Error al realizar la petición';
     }
 
-    return Promise.reject(new Error(errorMessage));
+    const customError = new Error(errorMessage) as CustomError;
+    customError.response = error.response;
+    return Promise.reject(customError);
   }
 );
 

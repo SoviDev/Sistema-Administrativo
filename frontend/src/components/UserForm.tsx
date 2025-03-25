@@ -4,7 +4,7 @@ import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchUser, createUser, updateUser, fetchDepartments } from '../store/slices/userSlice';
 import { RootState } from '../store/store';
-import { Department, User, UserUpdateData, PRIVILEGES } from '../types/auth';
+import { Department } from '../types/auth';
 import {
   Box,
   Button,
@@ -14,12 +14,11 @@ import {
   TextField,
   Typography,
   Autocomplete,
-  Chip,
   FormControlLabel,
   Switch,
-  Divider,
-  FormGroup,
+  Dialog,
 } from '@mui/material';
+import UserPrivilegesManager from './UserPrivilegesManager';
 
 interface FormData {
   username: string;
@@ -29,9 +28,6 @@ interface FormData {
   is_active: boolean;
   es_admin: boolean;
   password: string;
-  privilegios: {
-    [key in keyof typeof PRIVILEGES]: boolean;
-  };
 }
 
 const initialFormData: FormData = {
@@ -42,15 +38,6 @@ const initialFormData: FormData = {
   is_active: true,
   es_admin: false,
   password: '',
-  privilegios: {
-    TAREAS_VER: false,
-    TAREAS_CREAR: false,
-    TAREAS_EDITAR: false,
-    BANDEJA_VER: false,
-    BANDEJA_GESTIONAR: false,
-    USUARIOS_ADMIN: false,
-    DEPARTAMENTOS_ADMIN: false
-  }
 };
 
 const UserForm: React.FC = () => {
@@ -58,6 +45,7 @@ const UserForm: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { loading, error, currentUser, departments } = useAppSelector((state: RootState) => state.users);
+  const [privilegesDialogOpen, setPrivilegesDialogOpen] = useState(false);
 
   const [formData, setFormData] = useState<FormData>(currentUser ? {
     username: currentUser.username,
@@ -67,15 +55,6 @@ const UserForm: React.FC = () => {
     is_active: currentUser.is_active,
     es_admin: currentUser.es_admin,
     password: '',
-    privilegios: {
-      TAREAS_VER: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_VER),
-      TAREAS_CREAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_CREAR),
-      TAREAS_EDITAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_EDITAR),
-      BANDEJA_VER: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.BANDEJA_VER),
-      BANDEJA_GESTIONAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.BANDEJA_GESTIONAR),
-      USUARIOS_ADMIN: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.USUARIOS_ADMIN),
-      DEPARTAMENTOS_ADMIN: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.DEPARTAMENTOS_ADMIN)
-    }
   } : initialFormData);
 
   useEffect(() => {
@@ -96,15 +75,6 @@ const UserForm: React.FC = () => {
         is_active: currentUser.is_active,
         es_admin: currentUser.es_admin,
         password: '',
-        privilegios: {
-          TAREAS_VER: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_VER),
-          TAREAS_CREAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_CREAR),
-          TAREAS_EDITAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.TAREAS_EDITAR),
-          BANDEJA_VER: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.BANDEJA_VER),
-          BANDEJA_GESTIONAR: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.BANDEJA_GESTIONAR),
-          USUARIOS_ADMIN: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.USUARIOS_ADMIN),
-          DEPARTAMENTOS_ADMIN: currentUser.privilegios.some(p => p.privilegio.codigo === PRIVILEGES.DEPARTAMENTOS_ADMIN)
-        }
       });
     }
   }, [currentUser]);
@@ -124,20 +94,10 @@ const UserForm: React.FC = () => {
     }));
   };
 
-  const handlePrivilegioChange = (privilegio: keyof typeof PRIVILEGES) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      privilegios: {
-        ...prev.privilegios,
-        [privilegio]: e.target.checked
-      }
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userData: Omit<FormData, 'password' | 'privilegios'> & { password?: string } = {
+      const userData: Omit<FormData, 'password'> & { password?: string } = {
         username: formData.username,
         email: formData.email,
         telefono: formData.telefono,
@@ -156,16 +116,6 @@ const UserForm: React.FC = () => {
     } catch (error) {
       console.error('Error al guardar usuario:', error);
     }
-  };
-
-  const privilegeLabels: { [key in keyof typeof PRIVILEGES]: string } = {
-    TAREAS_VER: 'Ver Tareas',
-    TAREAS_CREAR: 'Crear Tareas',
-    TAREAS_EDITAR: 'Editar Tareas',
-    BANDEJA_VER: 'Ver Bandeja',
-    BANDEJA_GESTIONAR: 'Gestionar Bandeja',
-    USUARIOS_ADMIN: 'Administrar Usuarios',
-    DEPARTAMENTOS_ADMIN: 'Administrar Departamentos'
   };
 
   if (loading) {
@@ -187,7 +137,7 @@ const UserForm: React.FC = () => {
             <Button
               variant="outlined"
               color="primary"
-              onClick={() => navigate(`/usuarios/${userId}/privileges`)}
+              onClick={() => setPrivilegesDialogOpen(true)}
             >
               Gestionar Privilegios por Departamento
             </Button>
@@ -221,6 +171,15 @@ const UserForm: React.FC = () => {
                 required
               />
             </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Teléfono"
+                name="telefono"
+                value={formData.telefono || ''}
+                onChange={handleTextFieldChange}
+              />
+            </Grid>
             {!userId && (
               <Grid item xs={12} md={6}>
                 <TextField
@@ -235,21 +194,12 @@ const UserForm: React.FC = () => {
                 />
               </Grid>
             )}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Teléfono"
-                name="telefono"
-                value={formData.telefono || ''}
-                onChange={handleTextFieldChange}
-              />
-            </Grid>
             <Grid item xs={12}>
               <Autocomplete
                 multiple
-                options={departments || []}
+                options={departments}
                 getOptionLabel={(option: Department) => option.nombre}
-                value={departments?.filter(dept => formData.departamentos_acceso.includes(dept.id)) || []}
+                value={departments.filter(dept => formData.departamentos_acceso.includes(dept.id))}
                 onChange={handleDepartamentosChange}
                 renderInput={(params) => (
                   <TextField
@@ -258,72 +208,35 @@ const UserForm: React.FC = () => {
                     placeholder="Seleccionar departamentos"
                   />
                 )}
-                renderTags={(value: Department[], getTagProps) =>
-                  value.map((option: Department, index: number) => (
-                    <Chip
-                      variant="outlined"
-                      label={option.nombre}
-                      {...getTagProps({ index })}
-                    />
-                  ))
-                }
-                sx={{ width: '100%' }}
               />
             </Grid>
             <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                Estado y Privilegios Generales
-              </Typography>
-              <Box display="flex" flexDirection="column" gap={2}>
-                <FormGroup>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.is_active}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          is_active: e.target.checked
-                        }))}
-                        name="is_active"
-                      />
-                    }
-                    label="Usuario Activo"
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      is_active: e.target.checked
+                    }))}
+                    name="is_active"
                   />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.es_admin}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          es_admin: e.target.checked
-                        }))}
-                        name="es_admin"
-                      />
-                    }
-                    label="Administrador"
+                }
+                label="Usuario Activo"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.es_admin}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      es_admin: e.target.checked
+                    }))}
+                    name="es_admin"
                   />
-                </FormGroup>
-                <Divider />
-                <Typography variant="subtitle1" gutterBottom>
-                  Privilegios Básicos
-                </Typography>
-                <FormGroup>
-                  {(Object.keys(PRIVILEGES) as Array<keyof typeof PRIVILEGES>).map((privilegio) => (
-                    <FormControlLabel
-                      key={privilegio}
-                      control={
-                        <Switch
-                          checked={formData.privilegios[privilegio]}
-                          onChange={handlePrivilegioChange(privilegio)}
-                          name={privilegio}
-                        />
-                      }
-                      label={privilegeLabels[privilegio]}
-                    />
-                  ))}
-                </FormGroup>
-              </Box>
+                }
+                label="Administrador"
+              />
             </Grid>
             <Grid item xs={12}>
               <Box display="flex" gap={2}>
@@ -346,6 +259,20 @@ const UserForm: React.FC = () => {
           </Grid>
         </form>
       </Paper>
+
+      {userId && (
+        <Dialog
+          open={privilegesDialogOpen}
+          onClose={() => setPrivilegesDialogOpen(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <UserPrivilegesManager
+            userId={parseInt(userId)}
+            onClose={() => setPrivilegesDialogOpen(false)}
+          />
+        </Dialog>
+      )}
     </Box>
   );
 };

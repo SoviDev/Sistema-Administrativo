@@ -64,6 +64,7 @@ const DepartmentList: React.FC = () => {
     if (departmentToToggle) {
       try {
         await dispatch(toggleDepartmentActive(departmentToToggle.id)).unwrap();
+        await dispatch(fetchDepartments());
         setSnackbarMessage(`Departamento ${departmentToToggle.is_active ? 'desactivado' : 'activado'} correctamente`);
         setSnackbarOpen(true);
       } catch (error) {
@@ -178,7 +179,7 @@ const DepartmentList: React.FC = () => {
                       <Tooltip title={department.is_active ? 'Desactivar departamento' : 'Activar departamento'}>
                         <IconButton
                           size="small"
-                          color={department.is_active ? 'error' : 'success'}
+                          color={department.is_active ? 'success' : 'error'}
                           onClick={() => handleToggleClick(department)}
                         >
                           {department.is_active ? <ToggleOnIcon /> : <ToggleOffIcon />}
