@@ -54,10 +54,18 @@ const TaskDetail: React.FC<TaskDetailProps> = ({ taskId, open, onClose }) => {
         setErrorHistorial(null);
         console.log('TaskDetail - Cargando historial para tarea:', taskId);
         
-        const response = await axios.get(`/tareas/${taskId}/historial/`);
-        console.log('TaskDetail - Historial recibido:', response.data);
-        
-        setHistorial(response.data);
+        // Intentar primero con la ruta base
+        try {
+          const response = await axios.get(`/api/tareas/${taskId}/historial/`);
+          console.log('TaskDetail - Historial recibido:', response.data);
+          setHistorial(response.data);
+        } catch (error) {
+          // Si falla, intentar con la ruta alternativa
+          console.log('TaskDetail - Intentando ruta alternativa para historial');
+          const altResponse = await axios.get(`/tareas/${taskId}/historial/`);
+          console.log('TaskDetail - Historial recibido (ruta alternativa):', altResponse.data);
+          setHistorial(altResponse.data);
+        }
       } catch (error) {
         console.error('Error al cargar el historial:', error);
         setErrorHistorial('No se pudo cargar el historial');

@@ -32,9 +32,6 @@ export const fetchTasks = createAsyncThunk(
   async (filters: TaskFilters = {}, { rejectWithValue }) => {
     try {
       let endpoint = '/tareas/';
-      if (filters.historial) {
-        endpoint = '/tareas/historial/';
-      }
       
       const response = await axios.get(endpoint, { 
         params: {
