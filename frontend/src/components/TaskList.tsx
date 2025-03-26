@@ -82,7 +82,7 @@ const TaskList: React.FC = () => {
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/tareas/new')}
+            onClick={() => navigate('/tareas/nueva')}
           >
             Nueva Tarea
           </Button>

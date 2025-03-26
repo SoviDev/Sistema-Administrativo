@@ -47,15 +47,7 @@ const UserForm: React.FC = () => {
   const { loading, error, currentUser, departments } = useAppSelector((state: RootState) => state.users);
   const [privilegesDialogOpen, setPrivilegesDialogOpen] = useState(false);
 
-  const [formData, setFormData] = useState<FormData>(currentUser ? {
-    username: currentUser.username,
-    email: currentUser.email,
-    telefono: currentUser.telefono,
-    departamentos_acceso: currentUser.departamentos_acceso?.map(d => d.id) || [],
-    is_active: currentUser.is_active,
-    es_admin: currentUser.es_admin,
-    password: '',
-  } : initialFormData);
+  const [formData, setFormData] = useState<FormData>(initialFormData);
 
   useEffect(() => {
     dispatch(fetchDepartments());
@@ -66,7 +58,7 @@ const UserForm: React.FC = () => {
   }, [dispatch, userId]);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && userId) {
       setFormData({
         username: currentUser.username,
         email: currentUser.email,
@@ -77,7 +69,7 @@ const UserForm: React.FC = () => {
         password: '',
       });
     }
-  }, [currentUser]);
+  }, [currentUser, userId]);
 
   const handleTextFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

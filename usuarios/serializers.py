@@ -27,19 +27,41 @@ class UserPrivilegioSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     departamentos_acceso = DepartamentoSerializer(many=True, read_only=True)
     privilegios = UserPrivilegioSerializer(many=True, read_only=True)
+    password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'telefono',
             'es_admin', 'is_active', 'is_superuser', 'ultimo_ingreso',
-            'departamentos_acceso', 'privilegios'
+            'departamentos_acceso', 'privilegios', 'password'
         ]
+        
+    def create(self, validated_data):
+        departamentos_ids = self.initial_data.get('departamentos_acceso', [])
+        password = validated_data.pop('password', None)
+        
+        user = super().create(validated_data)
+        
+        if password:
+            user.set_password(password)
+            user.save()
+            
+        if departamentos_ids:
+            user.departamentos_acceso.set(departamentos_ids)
+            
+        return user
         
     def update(self, instance, validated_data):
         departamentos_ids = self.initial_data.get('departamentos_acceso', [])
+        password = validated_data.pop('password', None)
+        
         instance = super().update(instance, validated_data)
         
+        if password:
+            instance.set_password(password)
+            instance.save()
+            
         if departamentos_ids:
             instance.departamentos_acceso.set(departamentos_ids)
             

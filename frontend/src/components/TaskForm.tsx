@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
-import { fetchTask, createTask, updateTask } from '../store/slices/taskSlice';
+import { fetchTask, createTask, updateTask, clearCurrentTask } from '../store/slices/taskSlice';
 import { RootState } from '../store/store';
 import { Department, User } from '../types/auth';
 import { usePrivileges } from '../hooks/usePrivileges';
@@ -39,11 +39,21 @@ const TaskForm: React.FC = () => {
   useEffect(() => {
     if (taskId) {
       dispatch(fetchTask(taskId));
+    } else {
+      dispatch(clearCurrentTask());
     }
   }, [dispatch, taskId]);
 
   useEffect(() => {
-    if (currentTask) {
+    if (!taskId) {
+      setFormData({
+        titulo: '',
+        descripcion: '',
+        departamento: '',
+        estado: 'pendiente',
+        asignado_a: null,
+      });
+    } else if (currentTask) {
       setFormData({
         titulo: currentTask.titulo,
         descripcion: currentTask.descripcion,
@@ -52,7 +62,7 @@ const TaskForm: React.FC = () => {
         asignado_a: currentTask.asignado_a?.id || null,
       });
     }
-  }, [currentTask]);
+  }, [currentTask, taskId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

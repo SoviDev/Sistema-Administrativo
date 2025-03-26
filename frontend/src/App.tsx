@@ -114,7 +114,7 @@ function App() {
             }
           />
           <Route
-            path="/tareas/new"
+            path="/tareas/nueva"
             element={
               <PrivateRoute>
                 <TaskForm />
