@@ -29,10 +29,12 @@ const TaskForm: React.FC = () => {
   const [formData, setFormData] = useState<TaskFormData>({
     titulo: '',
     descripcion: '',
-    departamento: 0,
+    departamento: '',
     estado: 'pendiente',
     asignado_a: null,
   });
+
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (taskId) {
@@ -45,7 +47,7 @@ const TaskForm: React.FC = () => {
       setFormData({
         titulo: currentTask.titulo,
         descripcion: currentTask.descripcion,
-        departamento: currentTask.departamento,
+        departamento: currentTask.departamento.toString(),
         estado: currentTask.estado,
         asignado_a: currentTask.asignado_a?.id || null,
       });
@@ -58,22 +60,39 @@ const TaskForm: React.FC = () => {
       ...prev,
       [name]: value,
     }));
+    setFormError(null); // Limpiar error al cambiar algún campo
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validaciones básicas
+    if (!formData.titulo.trim()) {
+      setFormError('El título es requerido');
+      return;
+    }
+    if (!formData.descripcion.trim()) {
+      setFormError('La descripción es requerida');
+      return;
+    }
+    if (!formData.departamento) {
+      setFormError('El departamento es requerido');
+      return;
+    }
+
     try {
-      // Usar aserción de tipos directamente al tipo esperado por Task
+      // Convertir el departamento a número si es string
+      const departamentoId = typeof formData.departamento === 'string' 
+        ? parseInt(formData.departamento) 
+        : formData.departamento;
+
+      // Preparar los datos para enviar al backend
       const taskData: Partial<Task> = {
-        ...formData,
-        // Aserción directa al tipo esperado por Task
-        asignado_a: formData.asignado_a 
-          ? { 
-              id: formData.asignado_a,
-              nombre: '',     // Campos requeridos por User en Task
-              email: '',
-            } as any       // Usar 'any' para evitar incompatibilidades
-          : null,
+        titulo: formData.titulo.trim(),
+        descripcion: formData.descripcion.trim(),
+        departamento: departamentoId,
+        estado: formData.estado,
+        asignado_a: formData.asignado_a ? { id: formData.asignado_a } as User : null,
       };
 
       if (taskId) {
@@ -84,6 +103,7 @@ const TaskForm: React.FC = () => {
       navigate('/tareas');
     } catch (error) {
       console.error('Error al guardar tarea:', error);
+      setFormError('Error al guardar la tarea. Por favor, intente nuevamente.');
     }
   };
 
@@ -101,9 +121,9 @@ const TaskForm: React.FC = () => {
         <Typography variant="h5" gutterBottom>
           {taskId ? 'Editar Tarea' : 'Nueva Tarea'}
         </Typography>
-        {error && (
+        {(error || formError) && (
           <Typography color="error" gutterBottom>
-            {error}
+            {formError || error}
           </Typography>
         )}
         <form onSubmit={handleSubmit}>
@@ -116,6 +136,7 @@ const TaskForm: React.FC = () => {
                 value={formData.titulo}
                 onChange={handleChange}
                 required
+                error={formError?.includes('título')}
               />
             </Grid>
             <Grid item xs={12}>
@@ -128,6 +149,7 @@ const TaskForm: React.FC = () => {
                 value={formData.descripcion}
                 onChange={handleChange}
                 required
+                error={formError?.includes('descripción')}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -139,9 +161,11 @@ const TaskForm: React.FC = () => {
                 value={formData.departamento}
                 onChange={handleChange}
                 required
+                error={formError?.includes('departamento')}
               >
+                <MenuItem value="">Seleccione un departamento</MenuItem>
                 {user?.departamentos_acceso?.map((dept: Department) => (
-                  <MenuItem key={dept.id} value={dept.id}>
+                  <MenuItem key={dept.id} value={dept.id.toString()}>
                     {dept.nombre}
                   </MenuItem>
                 ))}

@@ -138,7 +138,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose, variant }) => {
                     <ListItem disablePadding>
                       <ListItemButton
                         sx={{ pl: 4 }}
-                        onClick={() => handleNavigate('/tareas/nuevo')}
+                        onClick={() => handleNavigate('/tareas/new')}
                       >
                         <ListItemIcon>
                           <AddTaskIcon />

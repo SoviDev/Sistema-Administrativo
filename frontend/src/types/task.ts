@@ -33,7 +33,7 @@ export interface Task {
 export interface TaskFormData {
   titulo: string;
   descripcion: string;
-  departamento: number;
+  departamento: string | number;
   estado: string;
   asignado_a: number | null;
 }

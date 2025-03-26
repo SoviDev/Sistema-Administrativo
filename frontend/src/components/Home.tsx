@@ -69,7 +69,7 @@ const Home: React.FC = () => {
                     variant="outlined"
                     size="small"
                     startIcon={<AddIcon />}
-                    onClick={() => navigate('/tareas/nuevo')}
+                    onClick={() => navigate('/tareas/new')}
                   >
                     Nueva
                   </Button>
