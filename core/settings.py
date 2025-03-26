@@ -153,6 +153,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://web:8000",
     "http://django_app:8000",
+    "http://*:3000",  # Permitir cualquier origen en el puerto 3000
+    "http://*:8000",  # Permitir cualquier origen en el puerto 8000
 ]
 
 # Media files
@@ -170,6 +172,25 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Configuración de REST Framework
 REST_FRAMEWORK = {

@@ -17,7 +17,6 @@ import DepartmentForm from './components/DepartmentForm';
 import NotFound from './components/NotFound';
 import TaskHistory from './components/TaskHistory';
 import TaskForm from './components/TaskForm';
-import TaskDetail from './components/TaskDetail';
 
 const theme = createTheme({
   palette: {
@@ -115,7 +114,7 @@ function App() {
             }
           />
           <Route
-            path="/tareas/nuevo"
+            path="/tareas/new"
             element={
               <PrivateRoute>
                 <TaskForm />
@@ -123,10 +122,10 @@ function App() {
             }
           />
           <Route
-            path="/tareas/:taskId"
+            path="/tareas/:taskId/edit"
             element={
               <PrivateRoute>
-                <TaskDetail />
+                <TaskForm />
               </PrivateRoute>
             }
           />

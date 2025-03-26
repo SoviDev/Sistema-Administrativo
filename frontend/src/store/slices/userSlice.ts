@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from '../../utils/axios';
+import axiosInstance from '../../api/axios';
 import { User, Department, UserUpdateData } from '../../types/auth';
 
 interface UserState {
@@ -22,9 +22,12 @@ export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get<User[]>('/api/usuarios/');
+      console.log('Fetching users...');
+      const response = await axiosInstance.get('/usuarios/');
+      console.log('Users response:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('Error fetching users:', error);
       return rejectWithValue(error.response?.data?.detail || 'Error al obtener usuarios');
     }
   }
@@ -34,7 +37,7 @@ export const fetchUser = createAsyncThunk(
   'users/fetchUser',
   async (userId: number, { rejectWithValue }) => {
     try {
-      const response = await axios.get<User>(`/api/usuarios/${userId}/`);
+      const response = await axiosInstance.get(`/usuarios/${userId}/`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al obtener usuario');
@@ -46,7 +49,7 @@ export const createUser = createAsyncThunk(
   'users/createUser',
   async (userData: UserUpdateData, { rejectWithValue }) => {
     try {
-      const response = await axios.post<User>('/api/usuarios/', userData);
+      const response = await axiosInstance.post('/usuarios/', userData);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al crear usuario');
@@ -58,7 +61,7 @@ export const updateUser = createAsyncThunk(
   'users/updateUser',
   async ({ id, data }: { id: number; data: UserUpdateData }, { rejectWithValue }) => {
     try {
-      const response = await axios.put<User>(`/api/usuarios/${id}/`, data);
+      const response = await axiosInstance.put(`/usuarios/${id}/`, data);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(
@@ -75,9 +78,12 @@ export const fetchDepartments = createAsyncThunk(
   'users/fetchDepartments',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get<Department[]>('/api/departamentos/');
+      console.log('Fetching departments...');
+      const response = await axiosInstance.get('/departamentos/');
+      console.log('Departments response:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('Error fetching departments:', error);
       return rejectWithValue(error.response?.data?.detail || 'Error al obtener departamentos');
     }
   }
@@ -87,15 +93,12 @@ export const resetUserPassword = createAsyncThunk(
   'users/resetPassword',
   async (userId: number, { rejectWithValue }) => {
     try {
-      console.log('Sending reset password request for user:', userId);
-      const response = await axios.post(`/api/usuarios/${userId}/reset_password/`);
-      console.log('Full reset password response:', response);
+      const response = await axiosInstance.post(`/usuarios/${userId}/reset_password/`);
       if (response.data.status === 'success') {
         return response.data;
       }
       return rejectWithValue(response.data.message || 'Error al resetear contraseña');
     } catch (error: any) {
-      console.error('Reset password error:', error);
       return rejectWithValue(
         error.response?.data?.message || 
         error.response?.data?.detail || 
@@ -109,7 +112,7 @@ export const toggleUserStatus = createAsyncThunk(
   'users/toggleStatus',
   async (userId: number, { rejectWithValue }) => {
     try {
-      const response = await axios.post<User>(`/api/usuarios/${userId}/toggle_active/`);
+      const response = await axiosInstance.post(`/usuarios/${userId}/toggle_active/`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(

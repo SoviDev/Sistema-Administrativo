@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Paper,
@@ -10,18 +10,15 @@ import {
   TableHead,
   TableRow,
   Chip,
-  IconButton,
-  Tooltip,
+  CircularProgress,
 } from '@mui/material';
-import { Visibility } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
 import { fetchTasks } from '../store/slices/taskSlice';
-import { Task } from '../types/task';
+import TaskDetail from './TaskDetail';
 
 const getEstadoColor = (estado: string) => {
-  switch (estado) {
+  switch (estado.toLowerCase()) {
     case 'completada':
       return 'success';
     case 'cancelada':
@@ -35,19 +32,28 @@ const getEstadoColor = (estado: string) => {
 
 const TaskHistory: React.FC = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
   const { tasks, loading, error } = useAppSelector((state) => state.tasks);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
   useEffect(() => {
+    // Llamar al endpoint específico para el historial
     dispatch(fetchTasks({ historial: true }));
   }, [dispatch]);
 
   const handleViewTask = (taskId: number) => {
-    navigate(`/tareas/${taskId}`);
+    setSelectedTaskId(taskId);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedTaskId(null);
   };
 
   if (loading) {
-    return <Box display="flex" justifyContent="center"><Typography>Cargando...</Typography></Box>;
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (error) {
@@ -58,12 +64,23 @@ const TaskHistory: React.FC = () => {
     );
   }
 
-  const completedTasks = tasks.filter((task) => 
-    task.estado === 'completada' || task.estado === 'cancelada'
-  );
+  if (!tasks.length) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h5" component="h2" gutterBottom>
+            Historial de Tareas
+          </Typography>
+          <Typography color="textSecondary" align="center">
+            No hay tareas completadas o canceladas
+          </Typography>
+        </Paper>
+      </Box>
+    );
+  }
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h5" component="h2" gutterBottom>
           Historial de Tareas
@@ -77,51 +94,51 @@ const TaskHistory: React.FC = () => {
                 <TableCell>Departamento</TableCell>
                 <TableCell>Asignado a</TableCell>
                 <TableCell>Estado</TableCell>
-                <TableCell>Fecha de Creación</TableCell>
-                <TableCell>Acciones</TableCell>
+                <TableCell>Fecha de Completado</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {completedTasks.map((task) => (
-                <TableRow key={task.id}>
+              {tasks.map((task) => (
+                <TableRow 
+                  key={task.id}
+                  onClick={() => handleViewTask(task.id)}
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    },
+                  }}
+                >
                   <TableCell>{task.titulo}</TableCell>
                   <TableCell>{task.departamento_nombre}</TableCell>
                   <TableCell>
-                    {task.asignado_a?.nombre || 'No asignado'}
+                    {task.asignado_a?.username || 'No asignado'}
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={task.estado.charAt(0).toUpperCase() + task.estado.slice(1)}
+                      label={task.estado_display || task.estado.charAt(0).toUpperCase() + task.estado.slice(1)}
                       color={getEstadoColor(task.estado) as any}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
-                    {new Date(task.fecha_creacion).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip title="Ver detalles">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleViewTask(task.id)}
-                      >
-                        <Visibility />
-                      </IconButton>
-                    </Tooltip>
+                    {task.fecha_completada 
+                      ? new Date(task.fecha_completada).toLocaleDateString()
+                      : new Date(task.fecha_actualizacion).toLocaleDateString()
+                    }
                   </TableCell>
                 </TableRow>
               ))}
-              {completedTasks.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    No hay tareas completadas o canceladas
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
         </TableContainer>
       </Paper>
+
+      <TaskDetail
+        taskId={selectedTaskId}
+        open={selectedTaskId !== null}
+        onClose={handleCloseDetail}
+      />
     </Box>
   );
 };

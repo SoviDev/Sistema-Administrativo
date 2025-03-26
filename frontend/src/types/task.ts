@@ -1,19 +1,25 @@
-export interface User {
-  id: number;
-  nombre: string;
-  email: string;
-}
+import { User } from './auth';
 
 export interface Department {
   id: number;
   nombre: string;
 }
 
+export interface HistorialTarea {
+  id: number;
+  tarea: number;
+  usuario: User | null;
+  usuario_nombre: string | null;
+  accion: string;
+  fecha_hora: string;
+}
+
 export interface Task {
   id: number;
   titulo: string;
   descripcion: string;
-  estado: 'pendiente' | 'en_progreso' | 'completada' | 'cancelada';
+  estado: string;
+  estado_display: string;
   departamento: number;
   departamento_nombre: string;
   asignado_a: User | null;
@@ -21,13 +27,14 @@ export interface Task {
   fecha_creacion: string;
   fecha_actualizacion: string;
   fecha_completada?: string;
+  historial: HistorialTarea[];
 }
 
 export interface TaskFormData {
   titulo: string;
   descripcion: string;
-  estado: Task['estado'];
   departamento: number;
+  estado: string;
   asignado_a: number | null;
 }
 

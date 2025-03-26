@@ -1,157 +1,238 @@
-import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Paper,
-  Typography,
-  Grid,
-  Chip,
-  Button,
-  Divider,
-  Alert,
-} from '@mui/material';
-import { ArrowBack, Edit } from '@mui/icons-material';
+import React, { useEffect, useState } from 'react';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
-import { fetchTask } from '../store/slices/taskSlice';
-import { usePrivileges } from '../hooks/usePrivileges';
-import { Task } from '../types/task';
+import { fetchTask, clearCurrentTask } from '../store/slices/taskSlice';
+import { RootState } from '../store/store';
+import axios from '../api/axios';
+import { HistorialTarea } from '../types/task';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Typography,
+  Box,
+  Grid,
+  Divider,
+  IconButton,
+  CircularProgress,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
 
-const getEstadoColor = (estado: string) => {
-  switch (estado) {
-    case 'completada':
-      return 'success';
-    case 'cancelada':
-      return 'error';
-    case 'en_progreso':
-      return 'warning';
-    default:
-      return 'default';
-  }
-};
+interface TaskDetailProps {
+  taskId: number | null;
+  open: boolean;
+  onClose: () => void;
+}
 
-const TaskDetail: React.FC = () => {
-  const { taskId } = useParams<{ taskId: string }>();
-  const navigate = useNavigate();
+const TaskDetail: React.FC<TaskDetailProps> = ({ taskId, open, onClose }) => {
   const dispatch = useAppDispatch();
-  const { currentTask, loading, error } = useAppSelector((state) => state.tasks);
-  const { hasPrivilege } = usePrivileges();
+  const { currentTask, loading, error } = useAppSelector((state: RootState) => state.tasks);
+  const [historial, setHistorial] = useState<HistorialTarea[]>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [errorHistorial, setErrorHistorial] = useState<string | null>(null);
 
   useEffect(() => {
-    if (taskId) {
-      dispatch(fetchTask(taskId));
+    if (open && taskId !== null && (!currentTask || currentTask.id !== taskId)) {
+      console.log('TaskDetail - Cargando tarea:', taskId);
+      dispatch(fetchTask(taskId.toString()));
     }
-  }, [dispatch, taskId]);
+  }, [dispatch, taskId, open, currentTask?.id]);
 
-  if (loading) {
-    return <Box display="flex" justifyContent="center"><Typography>Cargando...</Typography></Box>;
-  }
+  useEffect(() => {
+    const cargarHistorial = async () => {
+      if (!taskId || !open) return;
+      
+      try {
+        setLoadingHistorial(true);
+        setErrorHistorial(null);
+        console.log('TaskDetail - Cargando historial para tarea:', taskId);
+        
+        const response = await axios.get(`/tareas/${taskId}/historial/`);
+        console.log('TaskDetail - Historial recibido:', response.data);
+        
+        setHistorial(response.data);
+      } catch (error) {
+        console.error('Error al cargar el historial:', error);
+        setErrorHistorial('No se pudo cargar el historial');
+      } finally {
+        setLoadingHistorial(false);
+      }
+    };
 
-  if (error) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
-    );
-  }
+    if (currentTask?.id) {
+      cargarHistorial();
+    }
+  }, [currentTask?.id, taskId, open]);
 
-  if (!currentTask) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="warning">No se encontró la tarea</Alert>
-      </Box>
-    );
+  useEffect(() => {
+    return () => {
+      if (!open) {
+        dispatch(clearCurrentTask());
+        setHistorial([]);
+      }
+    };
+  }, [dispatch, open]);
+
+  if (!taskId) {
+    return null;
   }
 
   return (
-    <Box>
-      <Paper sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Button
-              startIcon={<ArrowBack />}
-              onClick={() => navigate('/tareas')}
-            >
-              Volver
-            </Button>
-            <Typography variant="h5" component="h2">
-              {currentTask.titulo}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          bgcolor: 'background.paper',
+          boxShadow: 24,
+          borderRadius: 2,
+        }
+      }}
+    >
+      <DialogTitle>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">Detalles de la Tarea</Typography>
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      
+      <DialogContent>
+        {loading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" p={4}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Box p={3}>
+            <Typography color="error">
+              {error || 'No se pudo cargar la tarea'}
             </Typography>
           </Box>
-          {hasPrivilege('TAREAS_EDITAR') && (
-            <Button
-              variant="contained"
-              startIcon={<Edit />}
-              onClick={() => navigate(`/tareas/${taskId}/editar`)}
-            >
-              Editar
-            </Button>
-          )}
-        </Box>
-
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" fontWeight="bold">Estado</Typography>
-            <Chip
-              label={currentTask.estado.charAt(0).toUpperCase() + currentTask.estado.slice(1)}
-              color={getEstadoColor(currentTask.estado) as any}
-              size="small"
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" fontWeight="bold">Descripción</Typography>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-              {currentTask.descripcion}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Divider sx={{ my: 2 }} />
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle1" fontWeight="bold">Departamento</Typography>
-            <Typography variant="body1">{currentTask.departamento_nombre}</Typography>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle1" fontWeight="bold">Asignado a</Typography>
-            <Typography variant="body1">
-              {currentTask.asignado_a?.nombre || 'No asignado'}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle1" fontWeight="bold">Creado por</Typography>
-            <Typography variant="body1">{currentTask.creador.nombre}</Typography>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle1" fontWeight="bold">Fecha de Creación</Typography>
-            <Typography variant="body1">
-              {new Date(currentTask.fecha_creacion).toLocaleDateString()}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle1" fontWeight="bold">Última Actualización</Typography>
-            <Typography variant="body1">
-              {new Date(currentTask.fecha_actualizacion).toLocaleDateString()}
-            </Typography>
-          </Grid>
-
-          {currentTask.fecha_completada && (
-            <Grid item xs={12} md={4}>
-              <Typography variant="subtitle1" fontWeight="bold">Fecha de Completado</Typography>
-              <Typography variant="body1">
-                {new Date(currentTask.fecha_completada).toLocaleDateString()}
+        ) : currentTask ? (
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="h5" gutterBottom>
+                {currentTask.titulo}
               </Typography>
             </Grid>
-          )}
-        </Grid>
-      </Paper>
-    </Box>
+            
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                Estado
+              </Typography>
+              <Typography variant="body1">
+                {currentTask.estado_display || currentTask.estado}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                Departamento
+              </Typography>
+              <Typography variant="body1">
+                {currentTask.departamento_nombre}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="textSecondary">
+                Descripción
+              </Typography>
+              <Typography variant="body1" paragraph>
+                {currentTask.descripcion}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                Asignado a
+              </Typography>
+              <Typography variant="body1">
+                {currentTask.asignado_a?.username || 'No asignado'}
+              </Typography>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                Fecha de Creación
+              </Typography>
+              <Typography variant="body1">
+                {new Date(currentTask.fecha_creacion).toLocaleDateString()}
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6" gutterBottom>
+                Historial de Cambios
+              </Typography>
+              {loadingHistorial ? (
+                <Box display="flex" justifyContent="center" alignItems="center" p={2}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : errorHistorial ? (
+                <Box p={2}>
+                  <Typography color="error">
+                    {errorHistorial}
+                  </Typography>
+                </Box>
+              ) : (
+                <TableContainer component={Paper} variant="outlined">
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Fecha</TableCell>
+                        <TableCell>Acción</TableCell>
+                        <TableCell>Usuario</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {historial.length > 0 ? (
+                        historial.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              {new Date(item.fecha_hora).toLocaleString()}
+                            </TableCell>
+                            <TableCell>{item.accion}</TableCell>
+                            <TableCell>{item.usuario_nombre || 'Sistema'}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={3} align="center">
+                            <Typography color="textSecondary">
+                              No hay registros en el historial de esta tarea.
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Grid>
+          </Grid>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   );
 };
 

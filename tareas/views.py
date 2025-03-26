@@ -583,11 +583,7 @@ def editar_tarea(request, pk):
 
 @login_required
 def agregar_observacion(request, tarea_id):
-    """
-    Vista para agregar una observación a una tarea.
-    """
     tarea = get_object_or_404(Tarea, id=tarea_id)
-    
     if request.method == 'POST':
         form = ObservacionForm(request.POST)
         if form.is_valid():
@@ -595,22 +591,11 @@ def agregar_observacion(request, tarea_id):
             observacion.tarea = tarea
             observacion.usuario = request.user
             observacion.save()
-            
-            # Si la solicitud es AJAX, devolver respuesta JSON
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': True,
-                    'observacion': {
-                        'contenido': observacion.contenido,
-                        'usuario': observacion.usuario.username,
-                        'fecha': observacion.fecha_creacion.strftime("%d/%m/%Y %H:%M")
-                    }
-                })
-            
-            # Si no es AJAX, redirigir a la página de la tarea
-            return redirect('tareas:editar', tarea_id=tarea.id)
-    
-    return JsonResponse({'error': 'Método no permitido'}, status=405)
+            messages.success(request, 'Observación agregada correctamente')
+            return redirect('tareas:historial', tarea_id=tarea_id)
+    else:
+        form = ObservacionForm()
+    return render(request, 'tareas/agregar_observacion.html', {'form': form, 'tarea': tarea})
 
 @login_required
 def historial_tarea(request, tarea_id):
@@ -679,101 +664,3 @@ def historial_tarea(request, tarea_id):
     }
     
     return render(request, 'tareas/historial_tarea.html', context)
-
-class TareaViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para gestionar tareas.
-    Permite listar, crear, actualizar y eliminar tareas.
-    """
-    serializer_class = TareaSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['estado', 'departamento']
-    search_fields = ['titulo', 'descripcion']
-    ordering_fields = ['fecha_creacion', 'fecha_actualizacion']
-    ordering = ['-fecha_creacion']
-
-    def get_queryset(self):
-        """
-        Retorna las tareas que el usuario puede ver.
-        """
-        user = self.request.user
-        if user.is_superuser:
-            return Tarea.objects.all()
-        return Tarea.objects.filter(
-            Q(creador=user) |
-            Q(asignado_a=user) |
-            Q(departamento=user.departamento)
-        ).distinct()
-
-    def perform_create(self, serializer):
-        """
-        Asigna el usuario actual como creador de la tarea.
-        """
-        serializer.save(creador=self.request.user)
-
-    @action(detail=True, methods=['post'])
-    def cambiar_estado(self, request, pk=None):
-        """
-        Cambia el estado de una tarea.
-        """
-        tarea = self.get_object()
-        estado = request.data.get('estado')
-        if not estado:
-            return Response(
-                {'error': 'Se requiere el estado'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        tarea.estado = estado
-        tarea.save()
-        
-        # Crear entrada en el historial
-        HistorialTarea.objects.create(
-            tarea=tarea,
-            usuario=request.user,
-            accion=f'Cambio de estado a {estado}',
-            estado_anterior=tarea.estado,
-            estado_nuevo=estado
-        )
-        
-        serializer = self.get_serializer(tarea)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post'])
-    def asignar(self, request, pk=None):
-        """
-        Asigna una tarea a un usuario.
-        """
-        tarea = self.get_object()
-        usuario_id = request.data.get('usuario_id')
-        
-        try:
-            usuario = User.objects.get(id=usuario_id)
-        except User.DoesNotExist:
-            return Response(
-                {'error': 'Usuario no encontrado'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-            
-        tarea.asignado_a = usuario
-        tarea.save()
-        
-        # Crear entrada en el historial
-        HistorialTarea.objects.create(
-            tarea=tarea,
-            usuario=request.user,
-            accion=f'Tarea asignada a {usuario.username}',
-            estado_anterior=tarea.estado,
-            estado_nuevo=tarea.estado
-        )
-        
-        serializer = self.get_serializer(tarea)
-        return Response(serializer.data)
-
-class HistorialTareaViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = HistorialTareaSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        return HistorialTarea.objects.filter(tarea_id=self.kwargs['tarea_pk'])

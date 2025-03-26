@@ -55,10 +55,15 @@ class Tarea(models.Model):
         return f"{self.titulo} - {self.estado}"
 
 class HistorialTarea(models.Model):
-    tarea = models.ForeignKey(Tarea, on_delete=models.CASCADE, related_name="historial")
+    tarea = models.ForeignKey('Tarea', on_delete=models.CASCADE, related_name='historial')
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     accion = models.TextField(default="Acción no especificada")
     fecha_hora = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_hora']
+        verbose_name = 'Historial de Tarea'
+        verbose_name_plural = 'Historiales de Tareas'
 
     def __str__(self):
         usuario_nombre = self.usuario.username if self.usuario else "Sistema"

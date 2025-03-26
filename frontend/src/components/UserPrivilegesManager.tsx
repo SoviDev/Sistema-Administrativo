@@ -19,7 +19,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
 import { PRIVILEGES } from '../types/auth';
-import axiosInstance from '../utils/axios';
+import axiosInstance from '../api/axios';
 
 interface Props {
   userId: number;

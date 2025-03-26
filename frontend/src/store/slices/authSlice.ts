@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '../store';
-import axios from '../../utils/axios';
+import axios from '../../api/axios';
 import { AuthState, LoginCredentials, LoginResponse, ValidationResponse, User } from '../../types/auth';
 import { setSelectedDepartment } from './departmentSlice';
 
@@ -16,7 +16,7 @@ export const login = createAsyncThunk<{ token: string; user: User }, LoginCreden
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
-      const tokenResponse = await axios.post<LoginResponse>('/api/token/', credentials);
+      const tokenResponse = await axios.post<LoginResponse>('/token/', credentials);
       const { access, refresh } = tokenResponse.data;
       
       localStorage.setItem('token', access);
@@ -24,7 +24,7 @@ export const login = createAsyncThunk<{ token: string; user: User }, LoginCreden
 
       axios.defaults.headers.common['Authorization'] = `Bearer ${access}`;
       
-      const userResponse = await axios.get<User>('/api/me/');
+      const userResponse = await axios.get<User>('/me/');
       const user = userResponse.data;
 
       return { token: access, user };
@@ -40,17 +40,17 @@ export const login = createAsyncThunk<{ token: string; user: User }, LoginCreden
       return rejectWithValue(
         error.response?.data?.detail || 
         error.response?.data?.message || 
-        error.response?.data?.non_field_errors?.[0] ||
         'Error al iniciar sesión. Por favor, intente nuevamente'
       );
     }
   }
 );
 
-export const logout = createAsyncThunk<void, void>(
+export const logout = createAsyncThunk(
   'auth/logout',
   async () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
   }
 );
 
@@ -63,12 +63,7 @@ export const validateToken = createAsyncThunk<ValidationResponse, void>(
     }
 
     try {
-      const response = await axios.get<User>('/api/me/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
+      const response = await axios.get<User>('/me/');
       return { user: response.data };
     } catch (error) {
       localStorage.removeItem('token');
@@ -82,7 +77,7 @@ export const getUser = createAsyncThunk<User, void>(
   'auth/getUser',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get<User>('/api/me/');
+      const response = await axios.get<User>('/me/');
       return response.data;
     } catch (error: any) {
       if (!error.response) {
@@ -100,7 +95,7 @@ export const changePassword = createAsyncThunk(
   'auth/changePassword',
   async ({ userId, oldPassword, newPassword }: { userId: number; oldPassword: string; newPassword: string }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`/api/usuarios/${userId}/change_password/`, {
+      const response = await axios.post(`/usuarios/${userId}/change_password/`, {
         old_password: oldPassword,
         new_password: newPassword
       });

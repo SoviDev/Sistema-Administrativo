@@ -2,17 +2,16 @@ import axios from 'axios';
 import { logout } from '../store/slices/authSlice';
 import { store } from '../store/store';
 
-const axiosInstance = axios.create({
+const instance = axios.create({
   baseURL: 'http://localhost:8000/api',
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false,
 });
 
 const refreshToken = async () => {
   try {
-    const refresh = localStorage.getItem('refreshToken');
+    const refresh = localStorage.getItem('refresh_token');
     if (!refresh) {
       store.dispatch(logout());
       return null;
@@ -27,13 +26,14 @@ const refreshToken = async () => {
     return access;
   } catch (error) {
     localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('refresh_token');
     store.dispatch(logout());
     return null;
   }
 };
 
-axiosInstance.interceptors.request.use(
+// Interceptor para agregar el token a las peticiones
+instance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -42,7 +42,6 @@ axiosInstance.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('Error en interceptor de request:', error);
     return Promise.reject(error);
   }
 );
@@ -61,22 +60,19 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-axiosInstance.interceptors.response.use(
+instance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Si no hay respuesta del servidor, rechazar inmediatamente
     if (!error.response) {
       return Promise.reject(error);
     }
 
-    // Si el error no es 401 o ya intentamos refresh, rechazar
     if (error.response.status !== 401 || originalRequest._retry) {
       return Promise.reject(error);
     }
 
-    // Si ya estamos refrescando, agregar a la cola
     if (isRefreshing) {
       try {
         const token = await new Promise((resolve, reject) => {
@@ -84,7 +80,7 @@ axiosInstance.interceptors.response.use(
         });
         if (token) {
           originalRequest.headers.Authorization = `Bearer ${token}`;
-          return axiosInstance(originalRequest);
+          return instance(originalRequest);
         }
         return Promise.reject(error);
       } catch (err) {
@@ -92,7 +88,6 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // Intentar refresh token
     originalRequest._retry = true;
     isRefreshing = true;
 
@@ -101,7 +96,7 @@ axiosInstance.interceptors.response.use(
       if (newToken) {
         processQueue(null, newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return axiosInstance(originalRequest);
+        return instance(originalRequest);
       } else {
         processQueue(new Error('No se pudo refrescar el token'), null);
         return Promise.reject(error);
@@ -115,4 +110,4 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export default axiosInstance; 
+export default instance; 

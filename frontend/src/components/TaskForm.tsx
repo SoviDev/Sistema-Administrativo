@@ -81,7 +81,7 @@ const TaskForm: React.FC = () => {
       } else {
         await dispatch(createTask(taskData)).unwrap();
       }
-      navigate('/tasks');
+      navigate('/tareas');
     } catch (error) {
       console.error('Error al guardar tarea:', error);
     }
@@ -175,7 +175,7 @@ const TaskForm: React.FC = () => {
                 </Button>
                 <Button
                   variant="outlined"
-                  onClick={() => navigate('/tasks')}
+                  onClick={() => navigate('/tareas')}
                 >
                   Cancelar
                 </Button>

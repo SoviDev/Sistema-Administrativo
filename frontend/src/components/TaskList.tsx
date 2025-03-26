@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../hooks/useAppDispatch';
 import { useAppSelector } from '../hooks/useAppSelector';
-import { fetchTasks, deleteTask } from '../store/slices/taskSlice';
+import { fetchTasks } from '../store/slices/taskSlice';
 import { RootState } from '../store/store';
 import { Department } from '../types/auth';
 import { usePrivileges } from '../hooks/usePrivileges';
-import { Task, TaskFilters } from '../types/task';
+import { TaskFilters } from '../types/task';
+import TaskDetail from './TaskDetail';
 import {
   Box,
   Button,
@@ -24,7 +25,7 @@ import {
   TextField,
   MenuItem,
 } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Add as AddIcon } from '@mui/icons-material';
 
 const TaskList: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ const TaskList: React.FC = () => {
   const { user } = useAppSelector((state: RootState) => state.auth);
   const { hasPrivilege } = usePrivileges();
 
+  const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [filters, setFilters] = useState<TaskFilters>({
     estado: undefined,
     departamento: undefined,
@@ -43,22 +45,16 @@ const TaskList: React.FC = () => {
     dispatch(fetchTasks(filters));
   }, [dispatch, filters]);
 
-  const handleDelete = async (taskId: number) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta tarea?')) {
-      try {
-        await dispatch(deleteTask(taskId)).unwrap();
-      } catch (error) {
-        console.error('Error al eliminar tarea:', error);
-      }
-    }
-  };
-
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFilters((prev) => ({
       ...prev,
       [name]: value || undefined,
     }));
+  };
+
+  const handleRowClick = (taskId: number) => {
+    setSelectedTaskId(taskId);
   };
 
   if (loading) {
@@ -86,7 +82,7 @@ const TaskList: React.FC = () => {
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/tasks/new')}
+            onClick={() => navigate('/tareas/new')}
           >
             Nueva Tarea
           </Button>
@@ -145,27 +141,31 @@ const TaskList: React.FC = () => {
           </TableHead>
           <TableBody>
             {tasks.map((task) => (
-              <TableRow key={task.id}>
+              <TableRow 
+                key={task.id}
+                onClick={() => handleRowClick(task.id)}
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
                 <TableCell>{task.titulo}</TableCell>
                 <TableCell>{task.departamento_nombre}</TableCell>
                 <TableCell>{task.estado}</TableCell>
-                <TableCell>{task.asignado_a?.nombre || 'No asignado'}</TableCell>
+                <TableCell>{task.asignado_a?.username || 'No asignado'}</TableCell>
                 <TableCell>{new Date(task.fecha_creacion).toLocaleDateString()}</TableCell>
                 <TableCell>
                   {hasPrivilege('task_update') && (
                     <IconButton
                       color="primary"
-                      onClick={() => navigate(`/tasks/${task.id}/edit`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/tareas/${task.id}/edit`);
+                      }}
                     >
                       <EditIcon />
-                    </IconButton>
-                  )}
-                  {hasPrivilege('task_delete') && (
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDelete(task.id)}
-                    >
-                      <DeleteIcon />
                     </IconButton>
                   )}
                 </TableCell>
@@ -174,6 +174,12 @@ const TaskList: React.FC = () => {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TaskDetail
+        taskId={selectedTaskId}
+        open={selectedTaskId !== null}
+        onClose={() => setSelectedTaskId(null)}
+      />
     </Box>
   );
 };
